@@ -591,6 +591,7 @@ function renderCurrentView() {
   const hash = window.location.hash || '#lobby';
   if (currentRoom) {
     checkAndAutoShowBriefing(currentRoom.phase);
+    checkAndAutoShowPendingStatModal();
   }
   if (hash.startsWith('#host')) renderHostScreen();
   else if (hash.startsWith('#play')) renderPlayerScreen();
@@ -766,44 +767,85 @@ async function executeJoinRoom() {
   }
 }
 
-// 主辦方大螢幕待選屬性橫幅
+// 主辦方大螢幕待選屬性橫幅（抽卡決策 + 考核後續懲戒/獎勵）
 function renderHostPendingStatChoicesBanner() {
-  if (!currentRoom?.pendingStatChoices) return '';
+  if (!currentRoom) return '';
   const c = currentRoom.pendingStatChoices;
-  const unres = currentRoom.players.filter(p => !c.resolvedPlayerIds.includes(p.id));
-  if (unres.length === 0) return '';
+  const unresChoices = c ? currentRoom.players.filter(p => !c.resolvedPlayerIds.includes(p.id)) : [];
+  const pendingPlayers = currentRoom.players.filter(p => p.pendingStatLoss || p.pendingStatGain);
+
+  if (unresChoices.length === 0 && pendingPlayers.length === 0) return '';
 
   const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
-  const actionText = c.isGain ? '增加' : '失去';
-  const color = c.isGain ? '#52b788' : '#e63946';
+  let html = '';
 
-  return `
-    <div style="background:rgba(20, 20, 25, 0.95); border:2px solid ${color}; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <span style="background:${color}; color:#111; font-weight:900; font-size:0.8rem; padding:2px 8px; border-radius:4px;">
-          突發事件屬性抉擇中
-        </span>
-        <span style="color:#ffd166; font-size:0.9rem; font-weight:bold;">${c.name}</span>
-      </div>
-      <p style="color:#e2e8f0; font-size:0.9rem; margin-bottom:12px;">
-        請下列官兵針對【${c.name}】選擇要【${actionText}】${c.amount} 點的屬性：
-      </p>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        ${unres.map(p => `
-          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); padding:8px 12px; border-radius:6px; flex-wrap:wrap; gap:8px;">
-            <span style="font-weight:700; color:#ffd166;">${p.name}：</span>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              ${c.options.map(opt => `
-                <button class="btn btn-sm" style="padding:4px 10px; font-size:0.8rem; border-color:${color};" onclick="sendAction('resolve_event_stat_choice', { playerId: '${p.id}', chosenStat: '${opt}' })">
-                  ${statNameMap[opt] || opt} (${p.stats[opt]} ➔ ${c.isGain ? p.stats[opt] + c.amount : Math.max(1, p.stats[opt] - c.amount)})
-                </button>
-              `).join('')}
+  // 1. 抽卡突發事件待選
+  if (unresChoices.length > 0) {
+    const actionText = c.isGain ? '增加' : '失去';
+    const color = c.isGain ? '#52b788' : '#e63946';
+    html += `
+      <div style="background:rgba(20, 20, 25, 0.95); border:2px solid ${color}; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="background:${color}; color:#111; font-weight:900; font-size:0.8rem; padding:2px 8px; border-radius:4px;">
+            突發事件屬性抉擇中
+          </span>
+          <span style="color:#ffd166; font-size:0.9rem; font-weight:bold;">${c.name}</span>
+        </div>
+        <p style="color:#e2e8f0; font-size:0.9rem; margin-bottom:12px;">
+          請下列官兵針對【${c.name}】選擇要【${actionText}】${c.amount} 點的屬性：
+        </p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${unresChoices.map(p => `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); padding:8px 12px; border-radius:6px; flex-wrap:wrap; gap:8px;">
+              <span style="font-weight:700; color:#ffd166;">${p.name}：</span>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                ${c.options.map(opt => `
+                  <button class="btn btn-sm" style="padding:4px 10px; font-size:0.8rem; border-color:${color};" onclick="sendAction('resolve_event_stat_choice', { playerId: '${p.id}', chosenStat: '${opt}' })">
+                    ${statNameMap[opt] || opt} (${p.stats[opt]} ➔ ${c.isGain ? p.stats[opt] + c.amount : Math.max(1, p.stats[opt] - c.amount)})
+                  </button>
+                `).join('')}
+              </div>
             </div>
-          </div>
-        `).join('')}
+          `).join('')}
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
+
+  // 2. 考核後突發處分 / 獎勵
+  if (pendingPlayers.length > 0) {
+    html += `
+      <div style="background:rgba(20, 20, 25, 0.95); border:2px solid #ffd166; border-radius:8px; padding:14px 18px; margin-bottom:16px; box-shadow:0 0 15px rgba(255,209,102,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="background:#ffd166; color:#111; font-weight:900; font-size:0.8rem; padding:2px 8px; border-radius:4px;">
+            ⚠️ 考核獎懲處分待決策
+          </span>
+          <span style="color:#ffd166; font-size:0.85rem; font-weight:bold;">${pendingPlayers.length} 位官兵待執行</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${pendingPlayers.map(p => {
+            const isLoss = !!p.pendingStatLoss;
+            const info = isLoss ? p.pendingStatLoss : p.pendingStatGain;
+            const color = isLoss ? '#e63946' : '#52b788';
+            return `
+              <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); border-left:4px solid ${color}; padding:8px 12px; border-radius:6px; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <strong style="color:#fff;">${p.name}</strong>
+                  <span style="color:${color}; font-size:0.85rem; margin-left:8px;">【${info.name}】（${isLoss ? '扣減' : '增加'} ${info.amount} 點）</span>
+                  <div style="color:var(--text-muted); font-size:0.8rem;">${info.reason}</div>
+                </div>
+                <button class="btn btn-sm ${isLoss ? 'btn-danger' : 'btn-primary'}" onclick="showPostTrainingStatModal('${isLoss ? 'loss' : 'gain'}', currentRoom.players.find(x=>x.id==='${p.id}').${isLoss ? 'pendingStatLoss' : 'pendingStatGain'}, '${p.id}')">
+                  ⚙️ 立即執行素質${isLoss ? '扣減' : '增加'}
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return html;
 }
 
 // -------------------------------------------------------------
@@ -1056,6 +1098,22 @@ function renderHostPhaseOperations() {
                     <div style="font-size:0.85rem; color:#ffd166; margin-top:4px;">
                       命中：${d.successes} / 目標 ${d.targetSuccesses} 顆
                     </div>
+                    ${pl.pendingStatLoss ? `
+                      <div style="margin-top:8px; background:rgba(230,57,70,0.18); border:1px solid #e63946; border-radius:4px; padding:6px 8px;">
+                        <div style="color:#ff6b6b; font-size:0.8rem; font-weight:800;">⚠️ 待處分扣減：【${pl.pendingStatLoss.name}】</div>
+                        <button type="button" class="btn btn-sm btn-danger" style="margin-top:4px; width:100%; justify-content:center; padding:4px 6px; font-size:0.8rem; font-weight:800;" onclick="showPostTrainingStatModal('loss', currentRoom.players.find(x=>x.id==='${pl.id}').pendingStatLoss, '${pl.id}')">
+                          ⚡ 點選扣減素質
+                        </button>
+                      </div>
+                    ` : ''}
+                    ${pl.pendingStatGain ? `
+                      <div style="margin-top:8px; background:rgba(82,183,136,0.18); border:1px solid #52b788; border-radius:4px; padding:6px 8px;">
+                        <div style="color:#74c69d; font-size:0.8rem; font-weight:800;">🎖️ 待獎勵提升：【${pl.pendingStatGain.name}】</div>
+                        <button type="button" class="btn btn-sm btn-primary" style="margin-top:4px; width:100%; justify-content:center; padding:4px 6px; font-size:0.8rem; font-weight:800;" onclick="showPostTrainingStatModal('gain', currentRoom.players.find(x=>x.id==='${pl.id}').pendingStatGain, '${pl.id}')">
+                          🎁 點選提升素質
+                        </button>
+                      </div>
+                    ` : ''}
                   ` : `
                     <div style="color:#ffd166; font-size:0.85rem; margin-bottom:6px;">⏳ 待投擲判定骰...</div>
                     <button class="btn btn-sm btn-primary" style="width:100%; justify-content:center;" onclick="sendAction('roll_training_dice', { playerId: '${pl.id}' })">
@@ -1265,6 +1323,323 @@ function renderPendingStatChoicesBanner(player) {
       </div>
     </div>
   `;
+}
+
+// -------------------------------------------------------------
+// 彈窗系統：考核後續素質懲處/獎勵與抽卡決策強制彈窗
+// -------------------------------------------------------------
+let activeStatModal = null;
+
+// 考核後續素質處分/提升模態彈窗 (事件 19、20 懲戒，事件 17、20 獎勵)
+function showPostTrainingStatModal(type, info, targetPlayerId) {
+  const existing = document.getElementById('post-training-stat-modal');
+  if (existing) existing.remove();
+
+  const pid = targetPlayerId || myPlayerId;
+  const targetPlayer = currentRoom?.players?.find(p => p.id === pid) || currentRoom?.players?.[0];
+  if (!targetPlayer || !info) return;
+
+  const isLoss = type === 'loss';
+  const minVal = currentRoom.config?.systemSettings?.minStatValue || 1;
+  const statNameMap = {
+    strength: { name: '力量', icon: '💪' },
+    agility: { name: '靈敏', icon: '🏃' },
+    endurance: { name: '體力', icon: '🛡️' },
+    intelligence: { name: '智慧', icon: '🧠' }
+  };
+
+  const modal = document.createElement('div');
+  modal.id = 'post-training-stat-modal';
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '9999';
+
+  const isDoubleLoss = isLoss && info.amount === 2; // 事件 20 基地鑑測失敗：扣兩項
+
+  modal.innerHTML = `
+    <div class="modal-dialog" style="text-align:left; max-width:560px; border-color:${isLoss ? '#e63946' : '#52b788'}; box-shadow:0 0 35px ${isLoss ? 'rgba(230,57,70,0.6)' : 'rgba(82,183,136,0.6)'};">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="background:${isLoss ? '#e63946' : '#52b788'}; color:${isLoss ? '#fff' : '#111'}; font-weight:900; font-size:0.8rem; padding:3px 10px; border-radius:4px;">
+          ${isLoss ? '⚠️ 突發考核懲戒處分' : '🎖️ 專長考核合格殊榮'}
+        </span>
+        <span style="color:#ffd166; font-size:0.85rem; font-weight:bold;">事件 #${info.eventId}</span>
+      </div>
+
+      <h3 style="color:${isLoss ? '#ff6b6b' : '#74c69d'}; font-size:1.55rem; margin-bottom:6px;">
+        【${info.name}】
+      </h3>
+      <div style="font-size:0.95rem; color:#ffd166; font-weight:700; margin-bottom:12px;">
+        官兵對象：${targetPlayer.name}
+      </div>
+
+      <div style="background:rgba(0,0,0,0.4); border-left:4px solid ${isLoss ? '#e63946' : '#52b788'}; padding:12px 14px; border-radius:6px; font-size:0.95rem; color:#e2e8f0; line-height:1.6; margin-bottom:16px;">
+        ${info.reason || (isLoss ? '很遺憾訓練考核未通過，依部隊突發事件規定需扣減素質！' : '恭喜考核過關表現優異，獲得專長殊榮提升素質！')}
+        <div style="margin-top:6px; font-weight:800; color:${isLoss ? '#ff6b6b' : '#ffd166'};">
+          👉 請選擇欲【${isLoss ? '扣減' : '增加'}】${info.amount} 點之素質${isDoubleLoss ? '（需選兩項不同素質各扣 1 點）' : ''}：
+        </div>
+      </div>
+
+      <div id="stat-choice-buttons" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+        ${['strength', 'agility', 'endurance', 'intelligence'].map(k => {
+          const currentVal = targetPlayer.stats[k] || 1;
+          const nextVal = isLoss ? Math.max(minVal, currentVal - 1) : currentVal + 1;
+          const disabled = isLoss && currentVal <= minVal;
+          return `
+            <button type="button" class="btn stat-pick-btn" data-stat="${k}" ${disabled ? 'disabled' : ''} style="display:flex; flex-direction:column; align-items:center; padding:12px; background:var(--bg-card); border:2px solid var(--border-camo); border-radius:8px; cursor:pointer; transition:all 0.2s;">
+              <span style="font-size:1.3rem; margin-bottom:4px;">${statNameMap[k].icon} ${statNameMap[k].name}</span>
+              <span style="font-size:0.85rem; color:var(--text-muted);">現有：<strong style="color:#fff;">${currentVal}</strong></span>
+              <span style="font-size:0.9rem; font-weight:800; color:${isLoss ? '#ff6b6b' : '#52b788'}; margin-top:4px;">
+                ${isLoss ? '➔ 扣減至 ' : '➔ 提升至 '} ${nextVal}
+              </span>
+              ${disabled ? '<span style="font-size:0.7rem; color:#ff6b6b; margin-top:2px;">(已達最低值 1 點)</span>' : ''}
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      <div id="stat-choice-status" style="font-size:0.95rem; color:#ffd166; font-weight:800; margin-bottom:12px; min-height:24px; text-align:center;">
+        ${isDoubleLoss ? '👉 請依序點選 2 項欲扣減之素質' : '👉 請直接點選一項欲調整之素質'}
+      </div>
+
+      <button id="stat-choice-confirm-btn" class="btn ${isLoss ? 'btn-danger' : 'btn-primary'}" style="width:100%; justify-content:center; font-size:1.15rem; padding:12px; font-weight:900;" disabled>
+        我準備好了！
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  activeStatModal = modal;
+
+  let selected = [];
+  const pickBtns = modal.querySelectorAll('.stat-pick-btn');
+  const confirmBtn = modal.querySelector('#stat-choice-confirm-btn');
+  const statusDiv = modal.querySelector('#stat-choice-status');
+
+  pickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stat = btn.getAttribute('data-stat');
+      if (isDoubleLoss) {
+        if (selected.includes(stat)) {
+          selected = selected.filter(s => s !== stat);
+          btn.style.borderColor = 'var(--border-camo)';
+          btn.style.background = 'var(--bg-card)';
+        } else {
+          if (selected.length < 2) {
+            selected.push(stat);
+            btn.style.borderColor = '#e63946';
+            btn.style.background = 'rgba(230,57,70,0.25)';
+          }
+        }
+        if (selected.length === 2) {
+          statusDiv.innerText = `✓ 已選定扣減：【${statNameMap[selected[0]].name}】與【${statNameMap[selected[1]].name}】`;
+          confirmBtn.disabled = false;
+        } else {
+          statusDiv.innerText = `⚠️ 還需再選擇 ${2 - selected.length} 項素質扣減`;
+          confirmBtn.disabled = true;
+        }
+      } else {
+        selected = [stat];
+        pickBtns.forEach(b => {
+          b.style.borderColor = 'var(--border-camo)';
+          b.style.background = 'var(--bg-card)';
+        });
+        btn.style.borderColor = isLoss ? '#e63946' : '#52b788';
+        btn.style.background = isLoss ? 'rgba(230,57,70,0.25)' : 'rgba(82,183,136,0.25)';
+        statusDiv.innerText = `✓ 已選定${isLoss ? '扣減' : '提升'}：【${statNameMap[stat].name}】`;
+        confirmBtn.disabled = false;
+      }
+    });
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.innerText = '處置生效中...';
+    await sendAction('resolve_post_training_stat', {
+      playerId: targetPlayer.id,
+      chosenStat: selected[0],
+      chosenStat2: selected[1] || null
+    });
+    modal.remove();
+    activeStatModal = null;
+    document.body.removeAttribute('data-active-stat-modal');
+  });
+}
+
+// 突發事件屬性抉擇模態彈窗 (事件 1, 4, 7, 8, 16)
+function showEventStatChoiceModal(choices, targetPlayerId) {
+  const existing = document.getElementById('event-stat-choice-modal');
+  if (existing) existing.remove();
+
+  const pid = targetPlayerId || myPlayerId;
+  const targetPlayer = currentRoom?.players?.find(p => p.id === pid) || currentRoom?.players?.[0];
+  if (!targetPlayer || !choices) return;
+
+  const isGain = choices.isGain;
+  const minVal = currentRoom.config?.systemSettings?.minStatValue || 1;
+  const statNameMap = {
+    strength: { name: '力量', icon: '💪' },
+    agility: { name: '靈敏', icon: '🏃' },
+    endurance: { name: '體力', icon: '🛡️' },
+    intelligence: { name: '智慧', icon: '🧠' }
+  };
+  const options = choices.options || ['strength', 'agility', 'endurance', 'intelligence'];
+
+  const modal = document.createElement('div');
+  modal.id = 'event-stat-choice-modal';
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '9999';
+
+  modal.innerHTML = `
+    <div class="modal-dialog" style="text-align:left; max-width:540px; border-color:${isGain ? '#52b788' : '#e63946'}; box-shadow:0 0 35px ${isGain ? 'rgba(82,183,136,0.6)' : 'rgba(230,57,70,0.6)'};">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="background:${isGain ? '#52b788' : '#e63946'}; color:${isGain ? '#111' : '#fff'}; font-weight:900; font-size:0.8rem; padding:3px 10px; border-radius:4px;">
+          ${isGain ? '✨ 突發事件屬性增益' : '⚠️ 突發事件屬性懲處'}
+        </span>
+        <span style="color:#ffd166; font-size:0.85rem; font-weight:bold;">突發事件 #${choices.eventId}</span>
+      </div>
+
+      <h3 style="color:#ffd166; font-size:1.55rem; margin-bottom:6px;">
+        【${choices.name}】
+      </h3>
+      <div style="font-size:0.95rem; color:#ffd166; font-weight:700; margin-bottom:12px;">
+        官兵對象：${targetPlayer.name}
+      </div>
+
+      <div style="background:rgba(0,0,0,0.4); border-left:4px solid ${isGain ? '#52b788' : '#e63946'}; padding:12px 14px; border-radius:6px; font-size:0.95rem; color:#e2e8f0; line-height:1.6; margin-bottom:16px;">
+        依據突發事件情境，請選擇一項素質進行<strong>${isGain ? '增加' : '失去'} ${choices.amount || 1} 點</strong>：
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(${options.length > 2 ? '2' : options.length}, 1fr); gap:10px; margin-bottom:16px;">
+        ${options.map(k => {
+          const currentVal = targetPlayer.stats[k] || 1;
+          const nextVal = isGain ? currentVal + (choices.amount || 1) : Math.max(minVal, currentVal - (choices.amount || 1));
+          const disabled = !isGain && currentVal <= minVal;
+          return `
+            <button type="button" class="btn event-stat-pick-btn" data-stat="${k}" ${disabled ? 'disabled' : ''} style="display:flex; flex-direction:column; align-items:center; padding:12px; background:var(--bg-card); border:2px solid var(--border-camo); border-radius:8px; cursor:pointer;">
+              <span style="font-size:1.3rem; margin-bottom:4px;">${statNameMap[k]?.icon || ''} ${statNameMap[k]?.name || k}</span>
+              <span style="font-size:0.85rem; color:var(--text-muted);">現有：<strong style="color:#fff;">${currentVal}</strong></span>
+              <span style="font-size:0.9rem; font-weight:800; color:${isGain ? '#52b788' : '#ff6b6b'}; margin-top:4px;">
+                ${isGain ? '➔ 提升至 ' : '➔ 扣減至 '} ${nextVal}
+              </span>
+              ${disabled ? '<span style="font-size:0.7rem; color:#ff6b6b; margin-top:2px;">(已達最低值 1 點)</span>' : ''}
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      <div id="event-stat-choice-status" style="font-size:0.95rem; color:#ffd166; font-weight:800; margin-bottom:12px; min-height:24px; text-align:center;">
+        👉 請點選上方任一素質完成決策
+      </div>
+
+      <button id="event-stat-confirm-btn" class="btn ${isGain ? 'btn-primary' : 'btn-danger'}" style="width:100%; justify-content:center; font-size:1.15rem; padding:12px; font-weight:900;" disabled>
+        我準備好了！
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  activeStatModal = modal;
+
+  let chosen = null;
+  const btns = modal.querySelectorAll('.event-stat-pick-btn');
+  const confirmBtn = modal.querySelector('#event-stat-confirm-btn');
+  const statusDiv = modal.querySelector('#event-stat-choice-status');
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      chosen = btn.getAttribute('data-stat');
+      btns.forEach(b => {
+        b.style.borderColor = 'var(--border-camo)';
+        b.style.background = 'var(--bg-card)';
+      });
+      btn.style.borderColor = isGain ? '#52b788' : '#e63946';
+      btn.style.background = isGain ? 'rgba(82,183,136,0.25)' : 'rgba(230,57,70,0.25)';
+      statusDiv.innerText = `✓ 已選定${isGain ? '提升' : '扣減'}：【${statNameMap[chosen]?.name || chosen}】`;
+      confirmBtn.disabled = false;
+    });
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.innerText = '送出決策中...';
+    await sendAction('resolve_event_stat_choice', {
+      playerId: targetPlayer.id,
+      chosenStat: chosen
+    });
+    modal.remove();
+    activeStatModal = null;
+    document.body.removeAttribute('data-active-stat-modal');
+  });
+}
+
+// 自動檢查並彈出需要玩家決策素質增減的彈窗
+function checkAndAutoShowPendingStatModal() {
+  if (!currentRoom) return;
+  const hash = window.location.hash || '#lobby';
+
+  let targetPlayer = null;
+  let actionType = null;
+  let payloadInfo = null;
+
+  if (hash.startsWith('#play')) {
+    const me = currentRoom.players?.find(p => p.id === myPlayerId);
+    if (me) {
+      if (me.pendingStatLoss) {
+        targetPlayer = me;
+        actionType = 'post_loss';
+        payloadInfo = me.pendingStatLoss;
+      } else if (me.pendingStatGain) {
+        targetPlayer = me;
+        actionType = 'post_gain';
+        payloadInfo = me.pendingStatGain;
+      } else if (currentRoom.pendingStatChoices && !currentRoom.pendingStatChoices.resolvedPlayerIds.includes(me.id)) {
+        targetPlayer = me;
+        actionType = 'event_choice';
+        payloadInfo = currentRoom.pendingStatChoices;
+      }
+    }
+  } else if (hash.startsWith('#host') || hash.startsWith('#solo')) {
+    // 主辦方 / 單人模式：若有任何玩家待決策，主動彈出！
+    const playerWithLoss = currentRoom.players?.find(p => p.pendingStatLoss);
+    const playerWithGain = currentRoom.players?.find(p => p.pendingStatGain);
+    if (playerWithLoss) {
+      targetPlayer = playerWithLoss;
+      actionType = 'post_loss';
+      payloadInfo = playerWithLoss.pendingStatLoss;
+    } else if (playerWithGain) {
+      targetPlayer = playerWithGain;
+      actionType = 'post_gain';
+      payloadInfo = playerWithGain.pendingStatGain;
+    } else if (currentRoom.pendingStatChoices) {
+      const unres = currentRoom.players?.find(p => !currentRoom.pendingStatChoices.resolvedPlayerIds.includes(p.id));
+      if (unres) {
+        targetPlayer = unres;
+        actionType = 'event_choice';
+        payloadInfo = currentRoom.pendingStatChoices;
+      }
+    }
+  }
+
+  if (actionType && targetPlayer && payloadInfo) {
+    const modalKey = `${actionType}_${targetPlayer.id}_${payloadInfo.eventId || payloadInfo.name}`;
+    if (document.body.getAttribute('data-active-stat-modal') === modalKey) {
+      return;
+    }
+    document.body.setAttribute('data-active-stat-modal', modalKey);
+
+    if (actionType === 'post_loss') {
+      showPostTrainingStatModal('loss', payloadInfo, targetPlayer.id);
+    } else if (actionType === 'post_gain') {
+      showPostTrainingStatModal('gain', payloadInfo, targetPlayer.id);
+    } else if (actionType === 'event_choice') {
+      showEventStatChoiceModal(payloadInfo, targetPlayer.id);
+    }
+  } else {
+    document.body.removeAttribute('data-active-stat-modal');
+    if (activeStatModal && !document.getElementById('briefing-modal-dialog')) {
+      activeStatModal.remove();
+      activeStatModal = null;
+    }
+  }
 }
 
 // -------------------------------------------------------------
@@ -1784,9 +2159,29 @@ function renderPlayerPhaseActions(me, phase) {
               </div>
             ` : ''}
 
+            <!-- 考核後續處分與獎勵待選卡片 (事件 17、19、20) -->
+            ${me.pendingStatLoss ? `
+              <div style="margin-top:14px; background:rgba(230,57,70,0.18); border:2px solid #e63946; border-radius:8px; padding:12px; box-shadow:0 0 15px rgba(230,57,70,0.3); text-align:left;">
+                <div style="color:#ff6b6b; font-weight:900; font-size:1.05rem;">⚠️ 突發考核懲處：【${me.pendingStatLoss.name}】</div>
+                <div style="color:#e2e8f0; font-size:0.85rem; margin-top:4px;">${me.pendingStatLoss.reason}</div>
+                <button type="button" class="btn btn-danger" style="width:100%; margin-top:10px; justify-content:center; font-weight:800; font-size:1rem; padding:10px;" onclick="showPostTrainingStatModal('loss', me.pendingStatLoss, '${me.id}')">
+                  ⚡ 立即點選扣減素質 (${me.pendingStatLoss.amount} 點)
+                </button>
+              </div>
+            ` : ''}
+            ${me.pendingStatGain ? `
+              <div style="margin-top:14px; background:rgba(82,183,136,0.18); border:2px solid #52b788; border-radius:8px; padding:12px; box-shadow:0 0 15px rgba(82,183,136,0.3); text-align:left;">
+                <div style="color:#74c69d; font-weight:900; font-size:1.05rem;">🎖️ 考核合格殊榮：【${me.pendingStatGain.name}】</div>
+                <div style="color:#e2e8f0; font-size:0.85rem; margin-top:4px;">${me.pendingStatGain.reason}</div>
+                <button type="button" class="btn btn-primary" style="width:100%; margin-top:10px; justify-content:center; font-weight:800; font-size:1rem; padding:10px;" onclick="showPostTrainingStatModal('gain', me.pendingStatGain, '${me.id}')">
+                  🎁 立即點選提升素質 (${me.pendingStatGain.amount} 點)
+                </button>
+              </div>
+            ` : ''}
+
             ${isSoloUser ? `
-              <button class="btn btn-primary" style="width:100%; margin-top:18px; font-size:1.1rem; padding:12px;" onclick="sendAction('resolve_training_phase')">
-                ⚖️ 結算訓練屬性增益並接受任務
+              <button class="btn btn-primary" style="width:100%; margin-top:18px; font-size:1.1rem; padding:12px;" onclick="${(me.pendingStatLoss || me.pendingStatGain) ? `showPostTrainingStatModal('${me.pendingStatLoss ? 'loss' : 'gain'}', me.pendingStatLoss || me.pendingStatGain, '${me.id}')` : `sendAction('resolve_training_phase')`}">
+                ${(me.pendingStatLoss || me.pendingStatGain) ? '⚠️ 請先點選完成考核處分/獎勵素質' : '⚖️ 結算訓練屬性增益並接受任務'}
               </button>
             ` : ''}
           ` : `

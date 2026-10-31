@@ -832,6 +832,23 @@ const server = http.createServer((req, res) => {
             };
             player.trainingSuccess = passed;
 
+            // 檢查事件 17, 19, 20 之成功/失敗後續增減益，立即觸發待選狀態！
+            if (passed) {
+              if (room.currentEvent?.id === 17) {
+                player.pendingStatGain = { eventId: 17, name: '大車駕駛薦訓', amount: 1, reason: '大車駕駛考核合格，專長認證提升' };
+              }
+              if (room.currentEvent?.id === 20) {
+                player.pendingStatGain = { eventId: 20, name: '基地期末鑑測績優', amount: 1, reason: '基地鑑測成績合格，全軍表揚提升' };
+              }
+            } else {
+              if (room.currentEvent?.id === 19) {
+                player.pendingStatLoss = { eventId: 19, name: '長官服儀突檢', amount: 1, reason: '訓練考核未通過，服儀連帶被扣分' };
+              }
+              if (room.currentEvent?.id === 20) {
+                player.pendingStatLoss = { eventId: 20, name: '基地期末鑑測懲戒', amount: 2, reason: '基地鑑測未通過，連坐嚴厲懲戒扣分' };
+              }
+            }
+
             const bonusesDesc = [
               ...breakdown.skillBonuses.map(s => `【${s.name}】`),
               ...breakdown.eventBonuses.map(e => `【${e.name}】`)
@@ -839,6 +856,38 @@ const server = http.createServer((req, res) => {
             const bonusText = bonusesDesc ? `（含技能/事件加成：${bonusesDesc}）` : '';
 
             addLog(room, `【訓練考核】「${player.name}」執行【${training.name}】（檢定能力：${breakdown.mainStatName}），投擲 ${diceCount} 顆作戰骰${bonusText}，命中面 ${successes}/${targetSuccesses} ── ${passed ? '✓ 考核通過！' : '✗ 考核未通過'}`);
+            handled = true;
+          }
+        }
+
+        // 考核成功/失敗後的事件素質增減（事件 17、19、20）
+        if (action === 'resolve_post_training_stat') {
+          const { playerId, chosenStat, chosenStat2 } = payload;
+          const player = room.players.find(p => p.id === playerId);
+          if (player && chosenStat) {
+            const minVal = room.config.systemSettings.minStatValue || 1;
+            const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+
+            // 處理失敗扣減 (事件 19, 20)
+            if (player.pendingStatLoss) {
+              const info = player.pendingStatLoss;
+              player.stats[chosenStat] = Math.max(minVal, (player.stats[chosenStat] || 1) - 1);
+              addLog(room, `【素質扣減】「${player.name}」因【${info.name}】扣減【${statNameMap[chosenStat]}】1 點（現值：${player.stats[chosenStat]}）！`);
+
+              if (info.amount === 2 && chosenStat2) {
+                player.stats[chosenStat2] = Math.max(minVal, (player.stats[chosenStat2] || 1) - 1);
+                addLog(room, `【素質扣減】「${player.name}」因【${info.name}】額外扣減【${statNameMap[chosenStat2]}】1 點（現值：${player.stats[chosenStat2]}）！`);
+              }
+              player.pendingStatLoss = null;
+            }
+
+            // 處理成功增加 (事件 17, 20)
+            if (player.pendingStatGain) {
+              const info = player.pendingStatGain;
+              player.stats[chosenStat] = (player.stats[chosenStat] || 1) + 1;
+              addLog(room, `【素質提升】「${player.name}」因【${info.name}】提升【${statNameMap[chosenStat]}】1 點（現值：${player.stats[chosenStat]}）！`);
+              player.pendingStatGain = null;
+            }
             handled = true;
           }
         }
@@ -868,15 +917,17 @@ const server = http.createServer((req, res) => {
                 p.stats[stat] = (p.stats[stat] || 1) + val;
               });
               // 事件 17：大車駕駛薦訓（成功後任選一項素質+1）
-              if (room.currentEvent?.id === 17) {
+              if (room.currentEvent?.id === 17 && p.pendingStatGain) {
                 const gainStat = p.eventBonusChoice || 'strength';
                 p.stats[gainStat] = (p.stats[gainStat] || 1) + 1;
+                p.pendingStatGain = null;
                 addLog(room, `【大車駕駛薦訓】「${p.name}」考核過關，額外獲得【${gainStat}】+1！`);
               }
               // 事件 20：基地期末鑑測（成功後任選一項素質+1）
-              if (room.currentEvent?.id === 20) {
+              if (room.currentEvent?.id === 20 && p.pendingStatGain) {
                 const gainStat = p.eventBonusChoice || 'endurance';
                 p.stats[gainStat] = (p.stats[gainStat] || 1) + 1;
+                p.pendingStatGain = null;
                 addLog(room, `【基地鑑測績優】「${p.name}」考核過關，額外獲得【${gainStat}】+1！`);
               }
             } else {
@@ -887,19 +938,21 @@ const server = http.createServer((req, res) => {
                 p.stats[maxK] = Math.max(1, p.stats[maxK] - 1);
               }
               // 事件 19：長官服儀突檢（失敗者任選一項素質-1）
-              if (room.currentEvent?.id === 19) {
+              if (room.currentEvent?.id === 19 && p.pendingStatLoss) {
                 const penaltyStat = p.eventPenaltyChoice || 'strength';
                 const minVal = room.config.systemSettings.minStatValue || 1;
                 p.stats[penaltyStat] = Math.max(minVal, (p.stats[penaltyStat] || 1) - 1);
+                p.pendingStatLoss = null;
                 addLog(room, `【服儀突檢扣分】「${p.name}」考核未過，服儀扣減【${penaltyStat}】-1！`);
               }
               // 事件 20：基地期末鑑測（失敗者任選兩項素質各-1）
-              if (room.currentEvent?.id === 20) {
+              if (room.currentEvent?.id === 20 && p.pendingStatLoss) {
                 const minVal = room.config.systemSettings.minStatValue || 1;
                 const p1 = p.eventPenaltyChoice || 'strength';
                 const p2 = p.eventPenaltyChoice2 || 'agility';
                 p.stats[p1] = Math.max(minVal, (p.stats[p1] || 1) - 1);
                 p.stats[p2] = Math.max(minVal, (p.stats[p2] || 1) - 1);
+                p.pendingStatLoss = null;
                 addLog(room, `【基地鑑測懲處】「${p.name}」考核未過，嚴厲懲戒扣減【${p1}】-1 與【${p2}】-1！`);
               }
             }
