@@ -1016,19 +1016,56 @@ function renderHostPhaseOperations() {
   }
 
   if (p === 'ROLL_TRAINING') {
+    const allRolled = currentRoom.players.every(pl => pl.diceResults || pl.eventCheckFailed);
     return `
       <div>
         ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
-        <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h4 style="color:#fff;">訓練考核判定中</h4>
-            <p style="color:var(--text-muted); font-size:0.9rem;">
-              請各官兵在終端投擲作戰骰，檢核是否達成通過標準。
-            </p>
+        <div style="margin-top:20px; background:var(--bg-panel); border:1px solid var(--border-camo); border-radius:8px; padding:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+              <h4 style="color:#fff; margin-bottom:4px;">全連專長訓練考核現場</h4>
+              <p style="color:var(--text-muted); font-size:0.9rem;">
+                官兵依指派課目與檢定能力投擲作戰骰，骰出 4 點以上軍徽星芒為命中面。
+              </p>
+            </div>
+            <button class="btn btn-primary" onclick="sendAction('resolve_training_phase')">
+              ⚖️ 結算本輪訓練與屬性增益 ${allRolled ? '✓ 全員完成' : '(可隨時結算)'}
+            </button>
           </div>
-          <button class="btn btn-primary" onclick="sendAction('resolve_training_phase')">
-            ⚖️ 結算本輪訓練與屬性增益
-          </button>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+            ${currentRoom.players.map(pl => {
+              const curT = currentRoom.config.trainings.find(t => t.id === pl.currentTrainingId);
+              const preview = getTrainingPreviewInfo(pl, curT);
+              const d = pl.diceResults;
+              return `
+                <div style="background:var(--bg-card); border:1px solid ${d ? (d.passed ? '#52b788' : '#e63946') : (pl.eventCheckFailed ? '#e63946' : 'var(--border-camo)')}; border-radius:6px; padding:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <span style="font-weight:700; color:#fff;">${pl.name}</span>
+                    <span style="font-size:0.75rem; color:#ffd166;">【${curT?.name || '專長'}】</span>
+                  </div>
+                  <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:6px;">
+                    檢定能力：【${preview?.mainStatName || '能力'}】 (預計擲 ${preview?.diceCount || 1} 顆)
+                  </div>
+                  ${pl.eventCheckFailed ? `
+                    <div style="color:#ff6b6b; font-weight:800; font-size:0.9rem;">🛑 突發狀況排除失敗，訓練中止</div>
+                  ` : (d ? `
+                    <div style="color:${d.passed ? '#52b788' : '#ff6b6b'}; font-weight:800; font-size:0.95rem;">
+                      ${d.passed ? '✓ 考核通過！' : '✗ 考核未通過'}
+                    </div>
+                    <div style="font-size:0.85rem; color:#ffd166; margin-top:4px;">
+                      命中：${d.successes} / 目標 ${d.targetSuccesses} 顆
+                    </div>
+                  ` : `
+                    <div style="color:#ffd166; font-size:0.85rem; margin-bottom:6px;">⏳ 待投擲判定骰...</div>
+                    <button class="btn btn-sm btn-primary" style="width:100%; justify-content:center;" onclick="sendAction('roll_training_dice', { playerId: '${pl.id}' })">
+                      🎲 主辦方代擲作戰骰
+                    </button>
+                  `)}
+                </div>
+              `;
+            }).join('')}
+          </div>
         </div>
       </div>
     `;
@@ -1281,6 +1318,145 @@ function renderPlayerScreen() {
   `;
 }
 
+// 全軍特長技能指南彈窗
+function showSkillsModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-dialog" style="text-align:left; max-width:680px; max-height:85vh; overflow-y:auto; border-color:#ffd166; box-shadow:0 0 30px rgba(255,209,102,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="color:#ffd166; font-size:1.4rem;">⚡ 全軍身分專屬特長技能指南</h3>
+        <button class="btn btn-sm btn-danger" onclick="this.closest('.modal-overlay').remove()">✕ 關閉</button>
+      </div>
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+        每位官兵身懷 2 項專屬特長技能，於特定專長訓練或團隊協作時自動發揮，大幅增加作戰判定骰！
+      </p>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        ${(currentRoom?.config?.roles || []).map(r => {
+          const isMyRole = currentRoom?.players?.find(p => p.id === myPlayerId)?.roleId === r.id;
+          return `
+            <div style="background:var(--bg-card); border:1px solid ${isMyRole ? '#52b788' : 'var(--border-camo)'}; border-radius:8px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h4 style="color:${isMyRole ? '#74c69d' : '#fff'}; font-size:1.05rem;">
+                  ${r.name} (${r.soldierName}) ${isMyRole ? '<span style="background:#52b788; color:#111; font-size:0.7rem; font-weight:900; padding:1px 6px; border-radius:3px; margin-left:6px;">您當前身分</span>' : ''}
+                </h4>
+                <span style="font-size:0.75rem; color:var(--text-muted);">初值：力${r.initialStats.strength} 敏${r.initialStats.agility} 體${r.initialStats.endurance} 智${r.initialStats.intelligence}</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                ${r.skills.map(sk => `
+                  <div style="background:rgba(0,0,0,0.3); border-left:3px solid #ffd166; padding:8px 10px; border-radius:4px;">
+                    <div style="color:#ffd166; font-weight:700; font-size:0.85rem;">★ ${sk.name}</div>
+                    <div style="font-size:0.8rem; color:#e2e8f0; line-height:1.4; margin-top:4px;">${sk.description}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:16px; font-weight:700;" onclick="this.closest('.modal-overlay').remove()">
+        我準備好了！
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// 計算當前訓練的預覽細項（檢定能力、基礎骰數、技能加成、事件加成、通過標準）
+function getTrainingPreviewInfo(player, training) {
+  if (!training || !player) return null;
+  const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+  const mainStat = training.requiredStats[0];
+  const baseDice = Math.max(1, player.stats[mainStat] || 1);
+
+  let diceCount = baseDice;
+  const skillBonuses = [];
+  const eventBonuses = [];
+
+  const sameGroup = (currentRoom?.players || []).filter(p => p.currentTrainingId === training.id);
+
+  if (player.roleId === 'role_1') {
+    if (training.requiredStats.includes('endurance')) {
+      diceCount += 1;
+      skillBonuses.push('【精力充沛】體力專長 +1 骰');
+    }
+    if (sameGroup.length > 1) {
+      diceCount += 1;
+      skillBonuses.push('【團結力量】同袍合練 +1 骰');
+    }
+  } else if (player.roleId === 'role_2') {
+    if (sameGroup.length === 1) {
+      diceCount += 1;
+      skillBonuses.push('【專業學識】獨自鑽研 +1 骰');
+    }
+    if (training.requiredStats.includes('agility')) {
+      diceCount += 1;
+      skillBonuses.push('【分析判斷】靈敏決策 +1 骰');
+    }
+  } else if (player.roleId === 'role_3') {
+    if (sameGroup.length > 1) {
+      diceCount += 1;
+      skillBonuses.push('【領導力】團隊激勵 +1 骰');
+    }
+    if (training.requiredStats.includes('strength')) {
+      diceCount += 1;
+      skillBonuses.push('【生存技巧】力量突破 +1 骰');
+    }
+  } else if (player.roleId === 'role_4') {
+    if (training.requiredStats.includes('intelligence')) {
+      diceCount += 1;
+      skillBonuses.push('【專業技能】智慧運籌 +1 骰');
+    }
+    if (player.lastTrainingId && player.lastTrainingId === training.id) {
+      diceCount += 1;
+      skillBonuses.push('【戰略思維】連續複習 +1 骰');
+    }
+  }
+
+  if (player.roleId !== 'role_3' && sameGroup.some(p => p.roleId === 'role_3') && sameGroup.length > 1) {
+    diceCount += 1;
+    skillBonuses.push('【同袍領導力】社會人士同梯激勵 +1 骰');
+  }
+
+  if (currentRoom?.currentEvent?.id === 2 || currentRoom?.currentEvent?.effectType === 'dice_bonus') {
+    diceCount += 1;
+    eventBonuses.push('【熱食部小聚】美食士氣 +1 骰');
+  }
+  if (currentRoom?.currentEvent?.id === 10) {
+    diceCount += 1;
+    eventBonuses.push('【發薪日小確幸】薪餉入袋 +1 骰');
+  }
+
+  let targetSuccesses = (training.targetSuccesses || 2) * (currentRoom?.intensityMultiplier || 1);
+  const targetDetails = [];
+  if (currentRoom?.currentEvent?.id === 6) {
+    targetSuccesses = 1;
+    targetDetails.push('小蜜蜂神救援：1 顆合格');
+  }
+  if (currentRoom?.currentEvent?.id === 11 && ['train_1','train_2','train_5','train_6','train_7'].includes(training.id)) {
+    targetSuccesses += 1;
+    targetDetails.push('單兵教練酷暑：標準 +1 顆');
+  }
+  if (currentRoom?.currentEvent?.id === 12 && ['train_3','train_4','train_5','train_6','train_7'].includes(training.id)) {
+    targetSuccesses += 1;
+    targetDetails.push('思鄉問候：標準 +1 顆');
+  }
+
+  return {
+    mainStat,
+    mainStatName: statNameMap[mainStat] || mainStat,
+    reqStatsName: training.requiredStats.map(s => statNameMap[s] || s).join(' / '),
+    baseDice,
+    diceCount,
+    skillBonuses,
+    eventBonuses,
+    targetSuccesses,
+    targetDetails
+  };
+}
+
 // 玩家個人軍籍圖板
 function renderMyDossier(me) {
   const role = me.roleData;
@@ -1291,10 +1467,21 @@ function renderMyDossier(me) {
           ${GAME_ASSETS.avatars[role.id]}
         </div>
         <div class="soldier-meta">
-          <h4>${me.name} <small style="color:#ffd166;">[${role.name}]</small></h4>
-          <div style="font-size:0.85rem; color:var(--text-muted);">${role.soldierName} ｜ 生日：${role.birthdayText}</div>
-          <div style="font-size:0.75rem; color:#74c69d; margin-top:3px;">
-            技能1：${role.skills[0].name} ｜ 技能2：${role.skills[1].name}
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <h4>${me.name} <small style="color:#ffd166;">[${role.name}]</small></h4>
+            <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; background:rgba(0,0,0,0.5); border:1px solid #ffd166; color:#ffd166;" onclick="showSkillsModal()">
+              ⚡ 技能詳解
+            </button>
+          </div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">
+            ${role.soldierName} ｜ 生日：${role.birthdayText}
+          </div>
+          <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+            ${role.skills.map(sk => `
+              <span style="display:inline-block; background:rgba(45, 106, 79, 0.4); border:1px solid var(--tactical-accent); color:#ffd166; font-size:0.75rem; font-weight:700; padding:2px 6px; border-radius:3px;" title="${sk.description}">
+                ★ ${sk.name}
+              </span>
+            `).join('')}
           </div>
         </div>
       </div>
@@ -1420,32 +1607,49 @@ function renderPlayerPhaseActions(me, phase) {
   }
 
   if (phase === 'SELECT_TRAINING') {
+    const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
     return `
       <div style="background:var(--bg-panel); border-radius:10px; padding:16px;">
-        <h3 style="color:#ffd166; margin-bottom:6px;">選擇訓練模式</h3>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
-          選定本回合欲執行的基礎訓練項目：
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h3 style="color:#ffd166;">選擇專長訓練課目</h3>
+          <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; border:1px solid #ffd166; color:#ffd166;" onclick="showSkillsModal()">
+            ⚡ 查看技能觸發時機
+          </button>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+          請評估自身優勢屬性與特長技能，選定本回合欲派遣挑戰之國軍訓練課目：
         </p>
         <div class="trainings-selector-grid">
           ${currentRoom.config.trainings.map(t => {
             const isCur = me.currentTrainingId === t.id;
-            const rewText = Object.entries(t.rewards).map(([k,v]) => `${k==='strength'?'力':k==='agility'?'敏':k==='endurance'?'體':'智'}+${v}`).join(', ');
+            const rewText = Object.entries(t.rewards).map(([k,v]) => `${statNameMap[k] || k}+${v}`).join(', ');
+            const mainStat = t.requiredStats[0];
+            const myStatVal = me.stats[mainStat] || 1;
+            const reqStatsText = t.requiredStats.map(s => statNameMap[s] || s).join(' / ');
+            const preview = getTrainingPreviewInfo(me, t);
+
             return `
               <div class="training-card-item ${isCur ? 'selected' : ''}" onclick="sendAction('choose_training', { playerId: '${me.id}', trainingId: '${t.id}' })">
                 <div class="training-title-row">
                   <div class="training-icon-mini">${GAME_ASSETS.trainings[t.id] || ''}</div>
                   <h5>${t.name}</h5>
                 </div>
-                <div class="training-condition-text">${t.description}</div>
-                <div style="font-size:0.75rem; color:#ffd166; margin-bottom:4px;">需達標：${t.targetSuccesses * currentRoom.intensityMultiplier} 顆命中面</div>
-                <span class="training-rewards-tag">獎勵：${rewText}</span>
+                
+                <div style="background:rgba(82, 183, 136, 0.15); border:1px solid #52b788; border-radius:4px; padding:4px 8px; margin:6px 0; font-size:0.8rem;">
+                  <span style="color:#74c69d; font-weight:800;">📌 檢定能力：【${reqStatsText}】</span><br>
+                  <span style="color:#ffd166; font-size:0.75rem;">您目前${statNameMap[mainStat]}：${myStatVal} 點 ➔ 預計擲 <strong>${preview.diceCount}</strong> 顆骰</span>
+                </div>
+
+                <div class="training-condition-text" style="font-size:0.78rem;">${t.description}</div>
+                <div style="font-size:0.75rem; color:#ffd166; margin:4px 0;">🎯 合格標準：需擲出 ${preview.targetSuccesses} 顆軍徽星芒</div>
+                <span class="training-rewards-tag">🎁 合格獎勵：${rewText}</span>
               </div>
             `;
           }).join('')}
         </div>
         ${isSoloUser && me.currentTrainingId ? `
           <button class="btn btn-primary" style="width:100%; margin-top:16px; font-size:1.1rem; padding:12px;" onclick="sendAction('proceed_to_event')">
-            ⏩ 訓練指派完畢，進入突發事件！
+            ⏩ 訓練課目選定完畢，進入突發事件！
           </button>
         ` : ''}
       </div>
@@ -1520,6 +1724,7 @@ function renderPlayerPhaseActions(me, phase) {
 
   if (phase === 'ROLL_TRAINING') {
     const curTraining = currentRoom.config.trainings.find(t => t.id === me.currentTrainingId);
+    const preview = getTrainingPreviewInfo(me, curTraining);
 
     // 若突發應變判定失敗，禁止投骰並顯示中斷提示
     if (me.eventCheckFailed) {
@@ -1547,9 +1752,14 @@ function renderPlayerPhaseActions(me, phase) {
         ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
         
         <div class="dice-arena-box">
-          <h4 style="color:#fff; margin-bottom:6px;">訓練考核：【${curTraining?.name || '訓練'}】</h4>
-          <p style="color:var(--text-muted); font-size:0.85rem;">
-            點擊下方按鈕擲骰，軍徽星芒為命中面朝上！
+          <div style="display:inline-block; background:var(--tactical-accent); color:#111; font-size:0.75rem; font-weight:900; padding:2px 8px; border-radius:4px; margin-bottom:6px;">
+            📌 考核課目：${curTraining?.name || '專長訓練'}
+          </div>
+          <h4 style="color:#fff; margin-bottom:6px;">
+            檢定能力：【<span style="color:#ffd166;">${preview?.mainStatName || '能力'}</span>】
+          </h4>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
+            點擊下方按鈕擲骰，骰出 4 點以上軍徽星芒為命中面！
           </p>
 
           ${isDiceRollingAnimation ? `
@@ -1561,13 +1771,13 @@ function renderPlayerPhaseActions(me, phase) {
             <div class="dice-list-flex">
               ${me.diceResults.rolls.map(r => GAME_ASSETS.renderDice(r.value, r.isSuccess)).join('')}
             </div>
-            <div style="font-size:1.2rem; font-weight:800; color:${me.diceResults.passed ? '#52b788' : '#d90429'}; margin-top:10px;">
+            <div style="font-size:1.25rem; font-weight:800; color:${me.diceResults.passed ? '#52b788' : '#d90429'}; margin-top:10px;">
               ${me.diceResults.passed ? '🎉 訓練成功通過！' : '❌ 未達標，訓練失敗'} (成功面：${me.diceResults.successes} / 目標：${me.diceResults.targetSuccesses})
             </div>
 
             <!-- 事件 15 懇親會重擲 1 顆骰子 -->
             ${(currentRoom.currentEvent?.id === 15 && me.diceResults && !me.diceResults.passed && !currentRoom.eventRerollUsed?.[me.id]) ? `
-              <div style="margin-top:14px;">
+              <div style="margin-top:14px; max-width:400px; margin-left:auto; margin-right:auto;">
                 <button class="btn btn-gold" style="width:100%; justify-content:center; padding:10px; font-size:1rem; color:#111; font-weight:800;" onclick="sendAction('reroll_training_dice', { playerId: '${me.id}' })">
                   🎁 溫馨懇親會加持：重擲 1 顆未命中骰子！
                 </button>
@@ -1580,9 +1790,32 @@ function renderPlayerPhaseActions(me, phase) {
               </button>
             ` : ''}
           ` : `
-            <div style="margin:24px 0;">
-              <button class="btn btn-primary" style="font-size:1.2rem; padding:12px 36px;" onclick="triggerAnimatedDiceRoll('${me.id}')">
-                🎲 投擲作戰判定骰
+            <!-- 投骰前算式檢定清單 -->
+            <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(82, 183, 136, 0.4); border-radius:8px; padding:12px 14px; margin:14px auto; max-width:480px; text-align:left;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-weight:800; color:#ffd166; font-size:0.95rem;">📊 作戰骰數量與檢定算式</span>
+                <span style="background:var(--tactical-accent); color:#111; font-weight:900; font-size:0.75rem; padding:2px 8px; border-radius:3px;">
+                  檢定能力：【${preview?.mainStatName}】
+                </span>
+              </div>
+              <div style="font-size:0.85rem; color:#e2e8f0; line-height:1.6;">
+                <div>• <strong>基礎屬性骰</strong>：${preview?.baseDice} 顆 (您的${preview?.mainStatName}屬性：${preview?.baseDice} 點)</div>
+                ${preview?.skillBonuses?.length > 0 ? `
+                  <div style="color:#74c69d;">• <strong>專屬特長技能</strong>：${preview.skillBonuses.join('、')}</div>
+                ` : '<div style="color:var(--text-muted);">• 專屬特長技能：當前訓練未達發動條件</div>'}
+                ${preview?.eventBonuses?.length > 0 ? `
+                  <div style="color:#ffd166;">• <strong>突發事件加成</strong>：${preview.eventBonuses.join('、')}</div>
+                ` : ''}
+                <div style="border-top:1px dashed var(--border-camo); margin-top:8px; padding-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-weight:700; color:#fff;">👉 總計投擲作戰骰：<span style="color:#ffd166; font-size:1.15rem; font-weight:900;">${preview?.diceCount}</span> 顆</span>
+                  <span style="font-weight:700; color:#74c69d;">🎯 目標成功面：<span style="color:#ffd166; font-size:1.15rem; font-weight:900;">${preview?.targetSuccesses}</span> 顆 (4點以上)</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin:20px 0;">
+              <button class="btn btn-primary" style="font-size:1.2rem; padding:12px 40px; box-shadow:0 0 20px rgba(82, 183, 136, 0.4);" onclick="triggerAnimatedDiceRoll('${me.id}')">
+                🎲 投擲作戰判定骰 (${preview?.diceCount || 1} 顆)
               </button>
             </div>
           `)}

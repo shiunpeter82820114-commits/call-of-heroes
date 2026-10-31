@@ -131,6 +131,112 @@ function addLog(room, text) {
   if (room.gameLogs.length > 100) room.gameLogs.pop();
 }
 
+// 計算訓練判定所需之能力、骰數、技能加成與事件影響
+function calculateTrainingDiceBreakdown(player, training, room) {
+  const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+  const mainStat = training.requiredStats[0];
+  const baseDice = Math.max(1, player.stats[mainStat] || 1);
+
+  let diceCount = baseDice;
+  const skillBonuses = [];
+  const eventBonuses = [];
+
+  const sameGroup = room.players.filter(p => p.currentTrainingId === player.currentTrainingId);
+
+  // 1. 角色專屬特長技能
+  if (player.roleId === 'role_1') {
+    if (training.requiredStats.includes('endurance')) {
+      diceCount += 1;
+      skillBonuses.push({ name: '精力充沛', desc: '體力訓練專長，作戰骰 +1' });
+    }
+    if (sameGroup.length > 1) {
+      diceCount += 1;
+      skillBonuses.push({ name: '團結力量', desc: '與同袍合練激勵，作戰骰 +1' });
+    }
+  } else if (player.roleId === 'role_2') {
+    if (sameGroup.length === 1) {
+      diceCount += 1;
+      skillBonuses.push({ name: '專業學識', desc: '獨自一人專注鑽研，作戰骰 +1' });
+    }
+    if (training.requiredStats.includes('agility')) {
+      diceCount += 1;
+      skillBonuses.push({ name: '分析判斷', desc: '靈敏訓練精準決策，作戰骰 +1' });
+    }
+  } else if (player.roleId === 'role_3') {
+    if (sameGroup.length > 1) {
+      diceCount += 1;
+      skillBonuses.push({ name: '領導力', desc: '帶領團隊凝聚士氣，作戰骰 +1' });
+    }
+    if (training.requiredStats.includes('strength')) {
+      diceCount += 1;
+      skillBonuses.push({ name: '生存技巧', desc: '力量訓練強悍發揮，作戰骰 +1' });
+    }
+  } else if (player.roleId === 'role_4') {
+    if (training.requiredStats.includes('intelligence')) {
+      diceCount += 1;
+      skillBonuses.push({ name: '專業技能', desc: '智力科技專業運用，作戰骰 +1' });
+    }
+    if (player.lastTrainingId && player.lastTrainingId === player.currentTrainingId) {
+      diceCount += 1;
+      skillBonuses.push({ name: '戰略思維', desc: '連續專長複習深化，作戰骰 +1' });
+    }
+  }
+
+  // 來自組內其他社會人士的領導力光環
+  if (player.roleId !== 'role_3' && sameGroup.some(p => p.roleId === 'role_3') && sameGroup.length > 1) {
+    diceCount += 1;
+    skillBonuses.push({ name: '同袍領導力', desc: '同組社會人士領導激勵，作戰骰 +1' });
+  }
+
+  // 2. 突發事件加減骰 (事件 2, 事件 10)
+  if (room.currentEvent?.id === 2 || (room.currentEvent?.effectType === 'dice_bonus' && room.currentEvent?.id === 2)) {
+    diceCount += 1;
+    eventBonuses.push({ name: '熱食部小聚', desc: '享用熱食美味士氣大振，作戰骰 +1' });
+  }
+  if (room.currentEvent?.id === 10 || (room.currentEvent?.effectType === 'dice_bonus' && room.currentEvent?.id === 10)) {
+    diceCount += 1;
+    eventBonuses.push({ name: '發薪日小確幸', desc: '薪餉入袋活力充沛，作戰骰 +1' });
+  }
+
+  // 3. 通過標準（目標成功數）
+  let targetSuccesses = (training.targetSuccesses || 2) * (room.intensityMultiplier || 1);
+  const targetDetails = [`基礎合格標準：${training.targetSuccesses || 2} 顆`];
+  if (room.intensityMultiplier > 1) {
+    targetDetails.push(`訓練強度升級：x${room.intensityMultiplier}`);
+  }
+
+  if (room.currentEvent?.id === 6) {
+    targetSuccesses = 1;
+    targetDetails.push('小蜜蜂神救援：合格標準大幅放寬為 1 顆');
+  }
+  if (room.currentEvent?.id === 11) {
+    const affected = ['train_1', 'train_2', 'train_5', 'train_6', 'train_7'];
+    if (affected.includes(training.id)) {
+      targetSuccesses += 1;
+      targetDetails.push('單兵教練酷暑：高溫酷熱耐受考驗，標準 +1 顆');
+    }
+  }
+  if (room.currentEvent?.id === 12) {
+    const affected = ['train_3', 'train_4', 'train_5', 'train_6', 'train_7'];
+    if (affected.includes(training.id)) {
+      targetSuccesses += 1;
+      targetDetails.push('家人思鄉問候：思鄉情切心緒波動，標準 +1 顆');
+    }
+  }
+
+  return {
+    mainStat,
+    mainStatName: statNameMap[mainStat] || mainStat,
+    reqStatsName: training.requiredStats.map(s => statNameMap[s] || s).join(' / '),
+    baseDice,
+    diceCount,
+    skillBonuses,
+    eventBonuses,
+    targetSuccesses,
+    targetDetails
+  };
+}
+
 function broadcastRoom(roomId) {
   const room = rooms.get(roomId);
   if (!room) return;
@@ -469,6 +575,13 @@ const server = http.createServer((req, res) => {
             res.end(JSON.stringify({ success: false, message: '尚有人員未分配訓練項目！' }));
             return;
           }
+          // 重設所有官兵的判定狀態，確保新一輪絕對不跳過判定！
+          room.players.forEach(p => {
+            p.eventCheckFailed = false;
+            p.eventCheckRoll = null;
+            p.diceResults = null;
+            p.trainingSuccess = null;
+          });
           room.phase = 'EVENT';
           addLog(room, '【戰況更新】全體人員就位完畢，由當前首位玩家抽取事件卡！');
           handled = true;
@@ -485,13 +598,15 @@ const server = http.createServer((req, res) => {
           room.currentEvent = ev;
           room.eventHistory.unshift(ev);
 
-          // 重設前置狀態
+          // 重設前置狀態與判定結果，確保每輪訓練判定絕不跳掉！
           room.eventPrecheck = null;
           room.pendingStatChoices = null;
           room.eventRerollUsed = {};
           room.players.forEach(p => {
             p.eventCheckFailed = false;
             p.eventCheckRoll = null;
+            p.diceResults = null;
+            p.trainingSuccess = null;
           });
 
           addLog(room, `【突發狀況】事件卡 #${ev.id}【${ev.name}】：${ev.description}（影響：${ev.effect}）`);
@@ -680,56 +795,17 @@ const server = http.createServer((req, res) => {
             }
 
             const training = room.config.trainings.find(t => t.id === player.currentTrainingId);
-            let targetSuccesses = training.targetSuccesses || 2;
-            const intensity = Math.floor((room.round - 1) / (room.config.systemSettings.intensityDoubleEveryRounds || 5)) + 1;
-            targetSuccesses *= intensity;
-
-            // 事件修改
-            if (room.currentEvent && room.currentEvent.effectType === 'override_target_success') {
-              targetSuccesses = room.currentEvent.effectPayload.target || 1;
-            }
-            if (room.currentEvent && room.currentEvent.effectType === 'conditional_target_increase') {
-              if (room.currentEvent.effectPayload.affectedTrainings?.includes(training.id)) {
-                targetSuccesses += room.currentEvent.effectPayload.increase || 1;
-              }
-            }
-
-            const mainStat = training.requiredStats[0];
-            let diceCount = Math.max(1, player.stats[mainStat] || 1);
-
-            // 角色技能與事件加乘
-            const sameTrainingPlayers = room.players.filter(p => p.currentTrainingId === player.currentTrainingId);
-            if (player.roleId === 'role_1') {
-              if (training.requiredStats.includes('endurance')) diceCount += 1;
-              if (sameTrainingPlayers.length > 1) diceCount += 1;
-            }
-            if (player.roleId === 'role_2') {
-              if (sameTrainingPlayers.length === 1) diceCount += 1;
-              if (training.requiredStats.includes('agility')) diceCount += 1;
-            }
-            if (player.roleId === 'role_3') {
-              if (training.requiredStats.includes('strength')) diceCount += 1;
-            }
-            // 領導力：有社會人士同組時其他人也+1
-            if (sameTrainingPlayers.some(p => p.roleId === 'role_3') && sameTrainingPlayers.length > 1) {
-              if (player.roleId !== 'role_3') diceCount += 1;
-            }
-            if (player.roleId === 'role_4') {
-              if (training.requiredStats.includes('intelligence')) diceCount += 1;
-              if (player.lastTrainingId === player.currentTrainingId) diceCount += 1;
-            }
-
-            if (room.currentEvent && room.currentEvent.effectType === 'dice_bonus') {
-              diceCount += room.currentEvent.effectPayload.amount || 1;
-            }
+            const breakdown = calculateTrainingDiceBreakdown(player, training, room);
+            const diceCount = breakdown.diceCount;
+            const targetSuccesses = breakdown.targetSuccesses;
 
             const threshold = room.config.systemSettings.diceSuccessThreshold || 4;
             const rolls = [];
             let successes = 0;
-            const autoWin = room.currentEvent && room.currentEvent.effectType === 'auto_success';
+            const autoWin = room.currentEvent?.id === 14 || room.currentEvent?.effectType === 'auto_success';
 
             if (autoWin) {
-              successes = targetSuccesses;
+              successes = diceCount;
               for (let i = 0; i < diceCount; i++) rolls.push({ value: 6, isSuccess: true });
             } else {
               for (let i = 0; i < diceCount; i++) {
@@ -738,8 +814,10 @@ const server = http.createServer((req, res) => {
                 if (ok) successes++;
                 rolls.push({ value: val, isSuccess: ok });
               }
-              if (room.currentEvent && room.currentEvent.effectType === 'success_reduction') {
-                successes = Math.max(0, successes - (room.currentEvent.effectPayload.amount || 1));
+              // 事件 3：課程打瞌睡扣減成功面
+              if (room.currentEvent?.id === 3 || room.currentEvent?.effectType === 'success_reduction') {
+                const redAmt = room.currentEvent.effectPayload?.amount || 1;
+                successes = Math.max(0, successes - redAmt);
               }
             }
 
@@ -749,11 +827,18 @@ const server = http.createServer((req, res) => {
               diceCount,
               successes,
               targetSuccesses,
-              passed
+              passed,
+              breakdown
             };
             player.trainingSuccess = passed;
 
-            addLog(room, `【訓練判定】「${player.name}」投擲 ${diceCount} 顆骰子，命中面 ${successes}/${targetSuccesses} ── ${passed ? '✓ 考核通過！' : '✗ 考核未通過'}`);
+            const bonusesDesc = [
+              ...breakdown.skillBonuses.map(s => `【${s.name}】`),
+              ...breakdown.eventBonuses.map(e => `【${e.name}】`)
+            ].join('');
+            const bonusText = bonusesDesc ? `（含技能/事件加成：${bonusesDesc}）` : '';
+
+            addLog(room, `【訓練考核】「${player.name}」執行【${training.name}】（檢定能力：${breakdown.mainStatName}），投擲 ${diceCount} 顆作戰骰${bonusText}，命中面 ${successes}/${targetSuccesses} ── ${passed ? '✓ 考核通過！' : '✗ 考核未通過'}`);
             handled = true;
           }
         }
