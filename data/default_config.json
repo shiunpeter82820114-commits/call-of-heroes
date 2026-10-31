@@ -1,0 +1,599 @@
+{
+  "gameTitle": "勇者的召喚 (Call of Heroes)",
+  "gameSubtitle": "臺灣志願役士兵招募與訓練主題桌遊",
+  "systemSettings": {
+    "pointsPerAwardLevel": {
+      "meritToSmall": 3,
+      "smallToLarge": 3,
+      "largeToMedal": 3
+    },
+    "victoryConditionMedals": 1,
+    "intensityDoubleEveryRounds": 5,
+    "minStatValue": 1,
+    "diceSuccessThreshold": 4,
+    "failurePenaltyStatEnabled": false,
+    "minPlayersToStart": 1,
+    "soloModeEnabled": true,
+    "soloCoopTaskScale": true
+  },
+  "roles": [
+    {
+      "id": "role_1",
+      "name": "高中畢業生",
+      "soldierName": "楊馨慧",
+      "birthday": "01-14",
+      "birthdayText": "1月14日",
+      "background": "正在求學的高中生，對於軍事世界充滿好奇和憧憬。",
+      "characteristics": "年輕、活力充沛，對於新事物接受度高。",
+      "initialStats": {
+        "strength": 3,
+        "agility": 3,
+        "endurance": 5,
+        "intelligence": 1
+      },
+      "skills": [
+        {
+          "id": "s1_1",
+          "name": "精力充沛",
+          "description": "可以在疲憊的情況下保持高效率──執行體力相關訓練時，多擲一顆判定骰子。",
+          "trigger": "training_type",
+          "targetType": "endurance",
+          "diceBonus": 1
+        },
+        {
+          "id": "s1_2",
+          "name": "團結力量",
+          "description": "可以激勵隊友，提升隊伍合作效果──與他人一起執行訓練時，可選擇一位隊友與自己多擲一顆判定骰子。",
+          "trigger": "coop_training",
+          "diceBonus": 1
+        }
+      ],
+      "avatar": "avatar_highschool.svg",
+      "boardImage": "board_highschool.svg"
+    },
+    {
+      "id": "role_2",
+      "name": "大學畢業生",
+      "soldierName": "林星儀",
+      "birthday": "08-15",
+      "birthdayText": "8月15日",
+      "background": "正在大學求學的學生，對社會和知識有一定的理解。",
+      "characteristics": "有多元的知識背景，較為綜合性。",
+      "initialStats": {
+        "strength": 1,
+        "agility": 5,
+        "endurance": 2,
+        "intelligence": 4
+      },
+      "skills": [
+        {
+          "id": "s2_1",
+          "name": "專業學識",
+          "description": "可以應用自己的專業學識解決問題──獨自一人訓練時，多擲一顆判定骰子。",
+          "trigger": "solo_training",
+          "diceBonus": 1
+        },
+        {
+          "id": "s2_2",
+          "name": "分析判斷",
+          "description": "能夠快速分析局勢，做出適切決策──執行靈敏相關訓練時，多擲一顆判定骰子。",
+          "trigger": "training_type",
+          "targetType": "agility",
+          "diceBonus": 1
+        }
+      ],
+      "avatar": "avatar_college.svg",
+      "boardImage": "board_college.svg"
+    },
+    {
+      "id": "role_3",
+      "name": "社會人士",
+      "soldierName": "蔡嘉亨",
+      "birthday": "04-25",
+      "birthdayText": "4月25日",
+      "background": "已經進入社會工作的人士，有一定的生活和職場經驗。",
+      "characteristics": "成熟穩重，經驗豐富。",
+      "initialStats": {
+        "strength": 5,
+        "agility": 1,
+        "endurance": 3,
+        "intelligence": 3
+      },
+      "skills": [
+        {
+          "id": "s3_1",
+          "name": "領導力",
+          "description": "可以在危急情況下指揮隊伍，提升部隊效率──與他人一起執行訓練時，所有人多擲一顆骰子。",
+          "trigger": "coop_all_training",
+          "diceBonus": 1
+        },
+        {
+          "id": "s3_2",
+          "name": "生存技巧",
+          "description": "擁有應對各種困難情況的技能──執行力量相關訓練時，多擲一顆判定骰子。",
+          "trigger": "training_type",
+          "targetType": "strength",
+          "diceBonus": 1
+        }
+      ],
+      "avatar": "avatar_society.svg",
+      "boardImage": "board_society.svg"
+    },
+    {
+      "id": "role_4",
+      "name": "專業人士",
+      "soldierName": "黃彥材",
+      "birthday": "11-30",
+      "birthdayText": "11月30日",
+      "background": "在特定領域具有專業技能和知識的人士，希望為國家貢獻。",
+      "characteristics": "專業知識豐富，對特定領域有深入理解。",
+      "initialStats": {
+        "strength": 2,
+        "agility": 4,
+        "endurance": 1,
+        "intelligence": 5
+      },
+      "skills": [
+        {
+          "id": "s4_1",
+          "name": "專業技能",
+          "description": "在特定情況下，可以發揮專業技能的優勢──執行智力(智慧)相關訓練時，多擲一顆判定骰子。",
+          "trigger": "training_type",
+          "targetType": "intelligence",
+          "diceBonus": 1
+        },
+        {
+          "id": "s4_2",
+          "name": "戰略思維",
+          "description": "能夠制定高效的戰術和策略──與上一次訓練相同時，可多擲一顆判定骰子。",
+          "trigger": "repeat_training",
+          "diceBonus": 1
+        }
+      ],
+      "avatar": "avatar_professional.svg",
+      "boardImage": "board_professional.svg"
+    }
+  ],
+  "trainings": [
+    {
+      "id": "train_1",
+      "name": "跑步訓練",
+      "description": "參與營區的長跑訓練，提升角色的體力和爆發力。",
+      "requiredStats": ["endurance"],
+      "statDice": "endurance",
+      "targetSuccesses": 2,
+      "rewards": {
+        "endurance": 2,
+        "strength": 1
+      },
+      "icon": "icon_running.svg"
+    },
+    {
+      "id": "train_2",
+      "name": "重力訓練",
+      "description": "進行健身房重力訓練，提升角色的力量和體能。",
+      "requiredStats": ["strength"],
+      "statDice": "strength",
+      "targetSuccesses": 2,
+      "rewards": {
+        "strength": 2,
+        "endurance": 1
+      },
+      "icon": "icon_weight.svg"
+    },
+    {
+      "id": "train_3",
+      "name": "障礙訓練",
+      "description": "透過通過各種障礙物訓練，如鐵絲網、障礙牆，提升角色靈活身體和智力。",
+      "requiredStats": ["agility"],
+      "statDice": "agility",
+      "targetSuccesses": 2,
+      "rewards": {
+        "agility": 2,
+        "intelligence": 1
+      },
+      "icon": "icon_obstacle.svg"
+    },
+    {
+      "id": "train_4",
+      "name": "精準射擊訓練",
+      "description": "進行 175 公尺臥射有依托射擊訓練，提升角色的射擊準確度和穩定性。",
+      "requiredStats": ["intelligence"],
+      "statDice": "intelligence",
+      "targetSuccesses": 2,
+      "rewards": {
+        "intelligence": 2,
+        "agility": 1
+      },
+      "icon": "icon_sniper.svg"
+    },
+    {
+      "id": "train_5",
+      "name": "快速反應射擊訓練",
+      "description": "進行快速反應射擊訓練，鍛鍊角色的反應速度和射擊速度。",
+      "requiredStats": ["agility", "strength"],
+      "targetSuccesses": 2,
+      "rewards": {
+        "agility": 2,
+        "strength": 1,
+        "intelligence": 1
+      },
+      "icon": "icon_cqb.svg"
+    },
+    {
+      "id": "train_6",
+      "name": "戰備演練訓練",
+      "description": "進行戰備演練，模擬實際戰鬥情況，培養角色的戰術思維和班指揮能力。",
+      "requiredStats": ["intelligence", "strength"],
+      "targetSuccesses": 2,
+      "rewards": {
+        "intelligence": 2,
+        "strength": 1,
+        "endurance": 1
+      },
+      "icon": "icon_tactics.svg"
+    },
+    {
+      "id": "train_7",
+      "name": "應變演練",
+      "description": "進行營區應變演練，模擬突發情況下的應對方式，培養角色的應變能力和團隊合作精神。",
+      "requiredStats": ["endurance", "agility"],
+      "targetSuccesses": 2,
+      "rewards": {
+        "endurance": 2,
+        "agility": 1,
+        "strength": 1
+      },
+      "icon": "icon_drill.svg"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "name": "暖身不足受傷",
+      "description": "訓練時因未做好暖身導致身體受傷。",
+      "effect": "力量或靈敏素質選擇一項失去 1 點。",
+      "effectType": "choice_stat_loss",
+      "effectPayload": { "options": ["strength", "agility"], "amount": 1 },
+      "image": "event_1.svg"
+    },
+    {
+      "id": 2,
+      "name": "熱食部小聚",
+      "description": "與同袍們相約熱食部一起分享笑話、趣事，建立深厚的友誼。",
+      "effect": "本次訓練判定結果時可多擲 1 顆骰子。",
+      "effectType": "dice_bonus",
+      "effectPayload": { "amount": 1 },
+      "image": "event_2.svg"
+    },
+    {
+      "id": 3,
+      "name": "課程打瞌睡",
+      "description": "室內課程打瞌睡被教官糾舉，本周假日禁足。",
+      "effect": "本次訓練擲骰後判定後玩家面朝上骰子數量減少 1 顆。",
+      "effectType": "success_reduction",
+      "effectPayload": { "amount": 1 },
+      "image": "event_3.svg"
+    },
+    {
+      "id": 4,
+      "name": "戰技測驗績優",
+      "description": "軍團體能戰技測驗成績績優，士氣高漲。",
+      "effect": "力量或體力選擇一項素質增加 1 點。",
+      "effectType": "choice_stat_gain",
+      "effectPayload": { "options": ["strength", "endurance"], "amount": 1 },
+      "image": "event_4.svg"
+    },
+    {
+      "id": 5,
+      "name": "突降豪大雨",
+      "description": "天空突然下起大雨，訓練因雨中斷，且裝備淋雨，只能犧牲休息時間保養。",
+      "effect": "訓練中斷，需進行體力擲骰判定 2 才可繼續訓練，否則本次訓練失敗。",
+      "effectType": "check_continue",
+      "effectPayload": { "stat": "endurance", "target": 2 },
+      "image": "event_5.svg"
+    },
+    {
+      "id": 6,
+      "name": "小蜜蜂神救援",
+      "description": "小蜜蜂神救援，在下課時突然發現場地旁有一位阿鳳姐騎機車賣飲料與肉粽。",
+      "effect": "本次訓練擲骰判定均改為 1 顆即可成功。",
+      "effectType": "override_target_success",
+      "effectPayload": { "target": 1 },
+      "image": "event_6.svg"
+    },
+    {
+      "id": 7,
+      "name": "夜間突襲督導",
+      "description": "上級夜間突襲督導，因未按時就寢遭長官責難。",
+      "effect": "靈敏或智慧素質選擇一項失去 1 點。",
+      "effectType": "choice_stat_loss",
+      "effectPayload": { "options": ["agility", "intelligence"], "amount": 1 },
+      "image": "event_7.svg"
+    },
+    {
+      "id": 8,
+      "name": "連長緊急交付任務",
+      "description": "執行連長的緊急交付任務，成效卓著受到表揚。",
+      "effect": "選擇任意一項素質增加 1 點。",
+      "effectType": "choice_any_gain",
+      "effectPayload": { "amount": 1 },
+      "image": "event_8.svg"
+    },
+    {
+      "id": 9,
+      "name": "營區大停電",
+      "description": "營區停電，各項電力設備無法使用，讓人感到焦躁與不安。",
+      "effect": "訓練中斷，需啟用備用發電機才能繼續，需進行靈敏擲骰判定 2，否則本次訓練失敗。",
+      "effectType": "check_continue",
+      "effectPayload": { "stat": "agility", "target": 2 },
+      "image": "event_9.svg"
+    },
+    {
+      "id": 10,
+      "name": "發薪日小確幸",
+      "description": "今天是每月 5 號最開心的發薪日，投幣買飲料又多掉了一瓶，覺得小確幸。",
+      "effect": "本次訓練每項素質判定均多擲 1 顆骰子。",
+      "effectType": "dice_bonus",
+      "effectPayload": { "amount": 1 },
+      "image": "event_10.svg"
+    },
+    {
+      "id": 11,
+      "name": "單兵基本教練酷暑",
+      "description": "例行的單兵基本教練，因危險係數偏高，炎熱的天氣讓你覺得難受。",
+      "effect": "本次訓練力量及體力訓練項目玩家，判定均須多 1 顆骰子面朝上。",
+      "effectType": "conditional_target_increase",
+      "effectPayload": { "affectedTrainings": ["train_1", "train_2", "train_5", "train_6", "train_7"], "increase": 1 },
+      "image": "event_11.svg"
+    },
+    {
+      "id": 12,
+      "name": "家人的思鄉問候",
+      "description": "收到了家人的問候，久未回家的你開始有了思鄉的情緒。",
+      "effect": "本次訓練靈敏及智力訓練項目玩家，判定均須多 1 顆骰子面朝上。",
+      "effectType": "conditional_target_increase",
+      "effectPayload": { "affectedTrainings": ["train_3", "train_4", "train_5", "train_6", "train_7"], "increase": 1 },
+      "image": "event_12.svg"
+    },
+    {
+      "id": 13,
+      "name": "路見車禍引導表揚",
+      "description": "路上撞見車禍，隨即幫忙引導車輛，獲得當地民眾讚賞，並受到長官表揚。",
+      "effect": "獲得獎勵小功乙次 (累滿功換章必須等待累功換章階段時進行)。",
+      "effectType": "grant_reward",
+      "effectPayload": { "reward": "small", "amount": 1 },
+      "image": "event_13.svg"
+    },
+    {
+      "id": 14,
+      "name": "模範團體麥當勞",
+      "description": "獲選國軍模範團體殊榮，成績優異，晚上連長請客吃麥當勞。",
+      "effect": "本次訓練直接成功，不須進行判定。",
+      "effectType": "auto_success",
+      "effectPayload": {},
+      "image": "event_14.svg"
+    },
+    {
+      "id": 15,
+      "name": "溫馨懇親會",
+      "description": "辦理懇親會，家人在此一起共襄盛舉，甚是開心。",
+      "effect": "本次訓練判定後可選一顆骰子進行重新擲骰。",
+      "effectType": "reroll_one_dice",
+      "effectPayload": {},
+      "image": "event_15.svg"
+    },
+    {
+      "id": 16,
+      "name": "半夜衛哨值勤",
+      "description": "今天輪值衛哨值勤，疲累的身軀，想到晚上半夜要起床就覺得更加疲倦。",
+      "effect": "力量或體力素質選擇一項失去 1 點。",
+      "effectType": "choice_stat_loss",
+      "effectPayload": { "options": ["strength", "endurance"], "amount": 1 },
+      "image": "event_16.svg"
+    },
+    {
+      "id": 17,
+      "name": "大車駕駛薦訓",
+      "description": "薦訓本次大車駕駛訓練，並挑戰獲得大車駕照。",
+      "effect": "本次訓練成功後，選擇任意一項素質增加 1 點。",
+      "effectType": "on_success_stat_gain",
+      "effectPayload": { "amount": 1 },
+      "image": "event_17.svg"
+    },
+    {
+      "id": 18,
+      "name": "公餘進修深造",
+      "description": "利用公餘進修時間，取得更高一階學歷。",
+      "effect": "智慧素質增加 1 點。",
+      "effectType": "direct_stat_gain",
+      "effectPayload": { "stat": "intelligence", "amount": 1 },
+      "image": "event_18.svg"
+    },
+    {
+      "id": 19,
+      "name": "長官服儀突檢",
+      "description": "今天由長官進行個人服儀檢查。",
+      "effect": "本次訓練判定失敗玩家，選擇任一項素質失去 1 點。",
+      "effectType": "on_failure_stat_loss",
+      "effectPayload": { "amount": 1 },
+      "image": "event_19.svg"
+    },
+    {
+      "id": 20,
+      "name": "基地期末鑑測",
+      "description": "今天開始進行基地訓練期末鑑測。",
+      "effect": "本次訓練判定成功玩家，選擇任一項素質增加 1 點；失敗玩家，選擇任兩項素質各失去 1 點。",
+      "effectType": "base_eval_event",
+      "effectPayload": { "winGain": 1, "losePenalty": 2 },
+      "image": "event_20.svg"
+    }
+  ],
+  "missions": [
+    {
+      "id": "mission_1",
+      "order": 1,
+      "name": "環境整理",
+      "description": "參加各項訓練後的日常清潔工作，維持訓練環境的整潔。",
+      "type": "individual_stat_check",
+      "conditionsDescription": "靈敏 3 點及體力 3 點以上即成功。",
+      "conditionCheck": {
+        "statMin": {
+          "agility": 3,
+          "endurance": 3
+        }
+      },
+      "reward": {
+        "merit": 2
+      },
+      "rewardDescription": "嘉獎兩次",
+      "image": "mission_1.svg"
+    },
+    {
+      "id": "mission_2",
+      "order": 2,
+      "name": "年度裝備檢查",
+      "description": "進行裝備全面檢查，維護武器和裝備的狀態，確保裝備處於良好狀態。",
+      "type": "individual_stat_check",
+      "conditionsDescription": "力量 3 點及智慧 3 點以上即成功。",
+      "conditionCheck": {
+        "statMin": {
+          "strength": 3,
+          "intelligence": 3
+        }
+      },
+      "reward": {
+        "merit": 2
+      },
+      "rewardDescription": "嘉獎兩次",
+      "image": "mission_2.svg"
+    },
+    {
+      "id": "mission_3",
+      "order": 3,
+      "name": "個人內務評比",
+      "description": "透過床上的棉被及內務檢整，培養紀律性和整齊的習慣，經過值星官的評比，選擇內務最佳士兵。",
+      "type": "competitive_highest",
+      "conditionsDescription": "智慧須達 4 以上，且靈敏最高玩家，同樣素質者均成功。",
+      "conditionCheck": {
+        "baseMin": { "intelligence": 4 },
+        "compareStat": "agility"
+      },
+      "reward": {
+        "small": 1
+      },
+      "rewardDescription": "小功乙次",
+      "image": "mission_3.svg"
+    },
+    {
+      "id": "mission_4",
+      "order": 4,
+      "name": "年度基本體能鑑測",
+      "description": "進行個人體能訓練，包括伏地挺身、仰臥起坐及 3000 公尺跑步等，完成指定年度基本訓練標準。",
+      "type": "competitive_highest",
+      "conditionsDescription": "體力須達 4 以上，且力量最高玩家，同樣素質者均成功。",
+      "conditionCheck": {
+        "baseMin": { "endurance": 4 },
+        "compareStat": "strength"
+      },
+      "reward": {
+        "small": 1
+      },
+      "rewardDescription": "小功乙次",
+      "image": "mission_4.svg"
+    },
+    {
+      "id": "mission_5",
+      "order": 5,
+      "name": "射擊鑑測",
+      "description": "參加射擊鑑測，磨練個人射擊能力，精準命中目標靶心。",
+      "type": "competitive_highest",
+      "conditionsDescription": "靈敏須達 4 以上，且智慧最高玩家，同樣素質者均成功。",
+      "conditionCheck": {
+        "baseMin": { "agility": 4 },
+        "compareStat": "intelligence"
+      },
+      "reward": {
+        "small": 1
+      },
+      "rewardDescription": "小功乙次",
+      "image": "mission_5.svg"
+    },
+    {
+      "id": "mission_6",
+      "order": 6,
+      "name": "夜間行軍任務",
+      "description": "參加夜間行軍任務，應對夜間環境，保持警惕，確保任務順遂。",
+      "type": "competitive_highest",
+      "conditionsDescription": "力量須達 4 以上，且體力最高玩家，同樣素質者均成功。",
+      "conditionCheck": {
+        "baseMin": { "strength": 4 },
+        "compareStat": "endurance"
+      },
+      "reward": {
+        "small": 1
+      },
+      "rewardDescription": "小功乙次",
+      "image": "mission_6.svg"
+    },
+    {
+      "id": "mission_7",
+      "order": 7,
+      "name": "營區安全防護任務",
+      "description": "針對各種突發狀況進行營區安全防護任務。",
+      "type": "coop_dice_pool",
+      "conditionsDescription": "所有玩家討論，選擇一項素質分別進行判定，合計骰子圖案面朝上數量達到 8 顆即任務成功。",
+      "conditionCheck": {
+        "teamTotalRequired": 8,
+        "rewardTopPlayer": { "small": 1 },
+        "rewardOtherPlayers": { "merit": 2 }
+      },
+      "rewardDescription": "成功時：判定最高者小功乙次，其餘嘉獎兩次",
+      "image": "mission_7.svg"
+    },
+    {
+      "id": "mission_8",
+      "order": 8,
+      "name": "救災任務",
+      "description": "參與災害救援行動，協助清理傷亡，提供緊急救援和支援，幫助災區居民重建家園。",
+      "type": "coop_dice_pool",
+      "conditionsDescription": "所有玩家討論，選擇一項素質分別進行判定，合計骰子圖案面朝上數量達到 10 顆即任務成功。",
+      "conditionCheck": {
+        "teamTotalRequired": 10,
+        "rewardAllPlayers": { "small": 2 }
+      },
+      "rewardDescription": "全體成功時每人獲小功兩次",
+      "image": "mission_8.svg"
+    },
+    {
+      "id": "mission_9",
+      "order": 9,
+      "name": "基地進訓",
+      "description": "進行基地訓練，包含各項鑑測，並取得基地訓練的合格認證。",
+      "type": "individual_quad_test",
+      "conditionsDescription": "每一位玩家分別進行 4 項素質測試，分別代表力量─戰技、體力─體能、靈敏─射擊、智力─專業技能，判定骰子面朝上均須達到 3 顆才算成功。",
+      "conditionCheck": {
+        "quadRequiredSuccess": 3
+      },
+      "reward": {
+        "large": 1
+      },
+      "rewardDescription": "合格者獲得大功乙次",
+      "image": "mission_9.svg"
+    },
+    {
+      "id": 10,
+      "order": 10,
+      "name": "漢光演習",
+      "description": "配合各軍種參與年度漢光演習，完成負責任務。",
+      "type": "coop_dice_pool",
+      "conditionsDescription": "所有玩家討論，選擇一項素質分別進行判定，合計骰子圖案面朝上數量達到 12 顆即任務成功。",
+      "conditionCheck": {
+        "teamTotalRequired": 12,
+        "rewardAllPlayers": { "large": 1 }
+      },
+      "rewardDescription": "全體成功時每人獲大功乙次",
+      "image": "mission_10.svg"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>《勇者的召喚》臺灣志願役士兵招募與訓練 數位桌遊系統</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 頂部戰術導航列 -->
+  <header class="navbar">
+    <div class="nav-brand" onclick="location.hash='#lobby'">
+      <div class="nav-logo-badge">COH</div>
+      <div class="nav-title">勇者的召喚</div>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-sm" onclick="location.hash='#lobby'">首頁大廳</button>
+      <button class="btn btn-sm btn-gold" onclick="location.hash='#admin'">⚙️ 後台管理</button>
+    </div>
+  </header>
+
+  <!-- 應用程式主渲染容器 -->
+  <main id="app" class="app-container">
+    <div style="text-align:center; padding: 60px 0; color: var(--text-muted);">
+      系統裝備就緒中，載入作戰數據...
+    </div>
+  </main>
+
+  <script src="assets.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
