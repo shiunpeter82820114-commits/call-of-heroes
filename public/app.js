@@ -30,6 +30,13 @@ const PHASE_BRIEFINGS = {
     actionPrompt: '🎯【新兵任務】：由首位玩家翻開突發事件卡！共同承擔本日部隊遭遇的突發情境與影響！',
     tips: '💡 班長叮嚀：同甘共苦是國軍的傳統，所有突發事件效果均由全連官兵共同承擔與面對！'
   },
+  'EVENT_CHECK': {
+    title: '【緊急狀況！克服阻礙重啟操課】',
+    tag: '突發危機．排除障礙',
+    story: '「嗶——！全體注意，訓練中斷！」突如其來的意外狀況打亂了原本的操課進度。不管是豪大雨導致裝備淋濕，還是營區大停電各項戰備器材停擺，唯有臨危不亂、迅速克服難關的士兵，方能獲准繼續重啟專長訓練！',
+    actionPrompt: '🎯【新兵任務】：投擲應變判定骰！達到指定成功面方可排除危機、繼續訓練！',
+    tips: '⚠️ 班長警示：若未能成功排除突發情境，本輪專長訓練將被迫中斷，判定為不合格！'
+  },
   'ROLL_TRAINING': {
     title: '【汗水凝結的驗收時刻】',
     tag: '考核檢定．命運之骰',
@@ -551,6 +558,18 @@ async function triggerAnimatedMissionRoll(playerId, chosenStat) {
   }, 850);
 }
 
+// 觸發突發事件前置應變的 3D 動畫擲骰
+async function triggerAnimatedPrecheckRoll(playerId) {
+  if (isDiceRollingAnimation) return;
+  isDiceRollingAnimation = true;
+  renderCurrentView();
+
+  setTimeout(async () => {
+    isDiceRollingAnimation = false;
+    await sendAction('roll_event_precheck', { playerId });
+  }, 850);
+}
+
 // SSE 連線
 function connectRoomSSE(roomId) {
   if (sseConnection) {
@@ -747,6 +766,46 @@ async function executeJoinRoom() {
   }
 }
 
+// 主辦方大螢幕待選屬性橫幅
+function renderHostPendingStatChoicesBanner() {
+  if (!currentRoom?.pendingStatChoices) return '';
+  const c = currentRoom.pendingStatChoices;
+  const unres = currentRoom.players.filter(p => !c.resolvedPlayerIds.includes(p.id));
+  if (unres.length === 0) return '';
+
+  const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+  const actionText = c.isGain ? '增加' : '失去';
+  const color = c.isGain ? '#52b788' : '#e63946';
+
+  return `
+    <div style="background:rgba(20, 20, 25, 0.95); border:2px solid ${color}; border-radius:8px; padding:14px 18px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="background:${color}; color:#111; font-weight:900; font-size:0.8rem; padding:2px 8px; border-radius:4px;">
+          突發事件屬性抉擇中
+        </span>
+        <span style="color:#ffd166; font-size:0.9rem; font-weight:bold;">${c.name}</span>
+      </div>
+      <p style="color:#e2e8f0; font-size:0.9rem; margin-bottom:12px;">
+        請下列官兵針對【${c.name}】選擇要【${actionText}】${c.amount} 點的屬性：
+      </p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        ${unres.map(p => `
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); padding:8px 12px; border-radius:6px; flex-wrap:wrap; gap:8px;">
+            <span style="font-weight:700; color:#ffd166;">${p.name}：</span>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${c.options.map(opt => `
+                <button class="btn btn-sm" style="padding:4px 10px; font-size:0.8rem; border-color:${color};" onclick="sendAction('resolve_event_stat_choice', { playerId: '${p.id}', chosenStat: '${opt}' })">
+                  ${statNameMap[opt] || opt} (${p.stats[opt]} ➔ ${c.isGain ? p.stats[opt] + c.amount : Math.max(1, p.stats[opt] - c.amount)})
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 // -------------------------------------------------------------
 // 2. 主辦方大螢幕視圖 (Host Screen)
 // -------------------------------------------------------------
@@ -795,7 +854,7 @@ function renderHostScreen() {
       <div class="phase-step ${phase === 'LOBBY' ? 'active' : 'passed'}">1. 新兵集結</div>
       <div class="phase-step ${phase === 'SELECT_ROLE' ? 'active' : ''}">2. 身分招募</div>
       <div class="phase-step ${phase === 'SELECT_TRAINING' ? 'active' : ''}">3. 訓練指派</div>
-      <div class="phase-step ${phase === 'EVENT' ? 'active' : ''}">4. 突發事件</div>
+      <div class="phase-step ${phase === 'EVENT' || phase === 'EVENT_CHECK' ? 'active' : ''}">4. 突發事件</div>
       <div class="phase-step ${phase === 'ROLL_TRAINING' ? 'active' : ''}">5. 訓練判定</div>
       <div class="phase-step ${phase === 'DRAW_MISSION' || phase === 'RESOLVE_MISSION' ? 'active' : ''}">6. 實兵任務</div>
       <div class="phase-step ${phase === 'AWARDS_VICTORY' || phase === 'MEDAL_CELEBRATION' ? 'active' : ''}">7. 累功換章</div>
@@ -803,6 +862,9 @@ function renderHostScreen() {
 
     <!-- 環節作戰指示橫幅 -->
     ${renderBriefingBanner(phase)}
+
+    <!-- 突發事件屬性決策橫幅 -->
+    ${renderHostPendingStatChoicesBanner()}
 
     <!-- 4位士兵狀況看板 -->
     <div class="players-dock">
@@ -902,6 +964,53 @@ function renderHostPhaseOperations() {
         <button class="btn btn-gold" style="font-size:1.15rem; padding:12px 30px;" onclick="sendAction('draw_event')">
           🃏 抽取本回合事件卡
         </button>
+      </div>
+    `;
+  }
+
+  if (p === 'EVENT_CHECK') {
+    const pre = currentRoom.eventPrecheck;
+    const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+    return `
+      <div>
+        ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
+        <div style="margin-top:20px; background:rgba(230, 57, 70, 0.15); border:1px solid #e63946; border-radius:8px; padding:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+            <div>
+              <h3 style="color:#ff6b6b; margin-bottom:4px;">⚠️ 突發狀況檢驗：${pre?.title || '應變處置'}</h3>
+              <p style="color:var(--text-muted); font-size:0.95rem;">
+                全體官兵需進行【${statNameMap[pre?.stat] || '應變'}】擲骰判定，命中面達 <strong>${pre?.target || 2}</strong> 顆以上方可繼續訓練！未達標者本輪訓練直接中止失敗。
+              </p>
+            </div>
+            <button class="btn btn-primary" onclick="sendAction('finish_event_precheck')">
+              ⏩ 應變判定完成，進入訓練考核
+            </button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px;">
+            ${currentRoom.players.map(pl => {
+              const r = pre?.rolls?.[pl.id];
+              return `
+                <div style="background:var(--bg-card); border:1px solid ${r ? (r.passed ? '#52b788' : '#e63946') : 'var(--border-camo)'}; border-radius:6px; padding:12px;">
+                  <div style="font-weight:700; color:#fff; margin-bottom:6px;">${pl.name}</div>
+                  ${r ? `
+                    <div style="color:${r.passed ? '#52b788' : '#ff6b6b'}; font-weight:800; font-size:0.95rem;">
+                      ${r.passed ? '✓ 應變成功 (獲准繼續)' : '✗ 應變失敗 (訓練中止)'}
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                      命中：${r.successes} / ${r.target} 顆 (擲 ${r.diceCount} 顆)
+                    </div>
+                  ` : `
+                    <div style="color:#ffd166; font-size:0.9rem;">⏳ 等待進行應變判定...</div>
+                    <button class="btn btn-sm" style="margin-top:8px; width:100%; justify-content:center;" onclick="sendAction('roll_event_precheck', { playerId: '${pl.id}' })">
+                      🎲 主辦方代擲
+                    </button>
+                  `}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
       </div>
     `;
   }
@@ -1088,6 +1197,39 @@ function renderSoldiersList(players, isHost) {
   }).join('');
 }
 
+// 突發事件屬性抉擇橫幅 (事件 1, 4, 7, 8, 16)
+function renderPendingStatChoicesBanner(player) {
+  if (!currentRoom?.pendingStatChoices || !player) return '';
+  const c = currentRoom.pendingStatChoices;
+  if (c.resolvedPlayerIds.includes(player.id)) return '';
+
+  const statNameMap = { strength: '💪 力量', agility: '🏃 靈敏', endurance: '🛡️ 體力', intelligence: '🧠 智慧' };
+  const actionText = c.isGain ? '增加' : '失去';
+  const color = c.isGain ? '#52b788' : '#e63946';
+
+  return `
+    <div style="background:rgba(20, 20, 25, 0.95); border:2px solid ${color}; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 0 20px ${color}40;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="background:${color}; color:#111; font-weight:900; font-size:0.75rem; padding:2px 8px; border-radius:4px;">
+          突發事件屬性抉擇
+        </span>
+        <span style="color:#ffd166; font-size:0.85rem; font-weight:bold;">${c.name}</span>
+      </div>
+      <h4 style="color:#fff; margin-bottom:6px;">請為「${player.name}」選擇欲【${actionText}】${c.amount} 點的屬性：</h4>
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
+        ${c.isGain ? '請挑選一項欲強化的素質，立即生效至個人軍籍！' : '受突發狀況影響，請選擇一項素質承擔扣減（最低不低於 1 點）。'}
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        ${c.options.map(opt => `
+          <button class="btn btn-sm" style="flex:1; min-width:110px; justify-content:center; background:var(--bg-card); border:1px solid ${color};" onclick="sendAction('resolve_event_stat_choice', { playerId: '${player.id}', chosenStat: '${opt}' })">
+            ${statNameMap[opt] || opt} (${player.stats[opt]} ➔ ${c.isGain ? player.stats[opt] + c.amount : Math.max(1, player.stats[opt] - c.amount)})
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 // -------------------------------------------------------------
 // 3. 參加方玩家手機/個人端 (Player Screen)
 // -------------------------------------------------------------
@@ -1122,6 +1264,9 @@ function renderPlayerScreen() {
 
     <!-- 環節作戰指示橫幅 -->
     ${renderBriefingBanner(phase)}
+
+    <!-- 突發事件屬性抉擇橫幅 -->
+    ${renderPendingStatChoicesBanner(me)}
 
     <!-- 個人角色卡/軍籍圖板 -->
     ${me.roleData ? renderMyDossier(me) : ''}
@@ -1323,8 +1468,80 @@ function renderPlayerPhaseActions(me, phase) {
     `;
   }
 
+  if (phase === 'EVENT_CHECK') {
+    const pre = currentRoom.eventPrecheck;
+    const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+    const r = pre?.rolls?.[me.id] || me.eventCheckRoll;
+
+    return `
+      <div style="background:var(--bg-panel); border-radius:10px; padding:16px;">
+        ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
+        
+        <div class="dice-arena-box" style="border-color:#ff6b6b; background:rgba(230,57,70,0.1);">
+          <div style="display:inline-block; background:#e63946; color:#fff; font-size:0.75rem; font-weight:900; padding:2px 8px; border-radius:4px; margin-bottom:8px;">
+            ⚠️ 訓練中斷．突發狀況應變判定
+          </div>
+          <h4 style="color:#fff; margin-bottom:6px;">${pre?.title || '應變處置'}</h4>
+          <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+            全連官兵必須進行【<strong>${statNameMap[pre?.stat] || '應變'}</strong>】檢驗！需骰出 <strong>${pre?.target || 2}</strong> 顆以上軍徽星芒成功面，方可排除阻礙繼續訓練！
+          </p>
+
+          ${isDiceRollingAnimation ? `
+            <div class="dice-list-flex">
+              ${[1,2,3,4].map(() => GAME_ASSETS.renderRollingDice()).join('')}
+            </div>
+            <div style="color:#ffd166; font-weight:800; font-size:1.1rem; margin-top:10px;">🎲 應變作戰骰劇烈滾動中...</div>
+          ` : (r ? `
+            <div class="dice-list-flex">
+              ${r.rolls.map(dice => GAME_ASSETS.renderDice(dice.value, dice.isSuccess)).join('')}
+            </div>
+            <div style="font-size:1.2rem; font-weight:800; color:${r.passed ? '#52b788' : '#e63946'}; margin-top:10px;">
+              ${r.passed ? '🎉 應變排除成功！獲准繼續專長訓練' : '❌ 排除失敗！發電機未啟動/突圍受阻，本輪訓練被迫中斷失敗'}
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+              命中：${r.successes} / ${r.target} 顆 (擲 ${r.diceCount} 顆)
+            </div>
+            ${isSoloUser ? `
+              <button class="btn btn-primary" style="width:100%; margin-top:18px; font-size:1.1rem; padding:12px;" onclick="sendAction('finish_event_precheck')">
+                ⏩ 應變判定完成，進入專長訓練考核
+              </button>
+            ` : ''}
+          ` : `
+            <div style="margin:20px 0;">
+              <button class="btn btn-primary" style="font-size:1.15rem; padding:12px 36px; background:#e63946; border-color:#e63946;" onclick="triggerAnimatedPrecheckRoll('${me.id}')">
+                🎲 投擲【${statNameMap[pre?.stat] || '應變'}】判定骰
+              </button>
+            </div>
+          `)}
+        </div>
+      </div>
+    `;
+  }
+
   if (phase === 'ROLL_TRAINING') {
     const curTraining = currentRoom.config.trainings.find(t => t.id === me.currentTrainingId);
+
+    // 若突發應變判定失敗，禁止投骰並顯示中斷提示
+    if (me.eventCheckFailed) {
+      return `
+        <div style="background:var(--bg-panel); border-radius:10px; padding:16px;">
+          ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
+          <div class="dice-arena-box" style="border-color:#e63946; background:rgba(230,57,70,0.12);">
+            <div style="font-size:2.2rem; margin-bottom:8px;">🛑</div>
+            <h4 style="color:#ff6b6b; margin-bottom:8px;">【專長訓練被迫中止】</h4>
+            <p style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; max-width:480px; margin:0 auto 12px auto;">
+              因突發情境（${currentRoom.currentEvent?.name || '意外狀況'}）應變排除失敗，未能啟動設備或克服阻礙，本輪訓練直接判定為不合格！
+            </p>
+            ${isSoloUser ? `
+              <button class="btn btn-primary" style="width:100%; margin-top:14px; font-size:1.1rem; padding:12px;" onclick="sendAction('resolve_training_phase')">
+                ⚖️ 結算本輪訓練與屬性增益
+              </button>
+            ` : '<div style="color:var(--text-muted); font-size:0.85rem; margin-top:8px;">請等待其他弟兄完成訓練考核結算...</div>'}
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div style="background:var(--bg-panel); border-radius:10px; padding:16px;">
         ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
@@ -1347,6 +1564,16 @@ function renderPlayerPhaseActions(me, phase) {
             <div style="font-size:1.2rem; font-weight:800; color:${me.diceResults.passed ? '#52b788' : '#d90429'}; margin-top:10px;">
               ${me.diceResults.passed ? '🎉 訓練成功通過！' : '❌ 未達標，訓練失敗'} (成功面：${me.diceResults.successes} / 目標：${me.diceResults.targetSuccesses})
             </div>
+
+            <!-- 事件 15 懇親會重擲 1 顆骰子 -->
+            ${(currentRoom.currentEvent?.id === 15 && me.diceResults && !me.diceResults.passed && !currentRoom.eventRerollUsed?.[me.id]) ? `
+              <div style="margin-top:14px;">
+                <button class="btn btn-gold" style="width:100%; justify-content:center; padding:10px; font-size:1rem; color:#111; font-weight:800;" onclick="sendAction('reroll_training_dice', { playerId: '${me.id}' })">
+                  🎁 溫馨懇親會加持：重擲 1 顆未命中骰子！
+                </button>
+              </div>
+            ` : ''}
+
             ${isSoloUser ? `
               <button class="btn btn-primary" style="width:100%; margin-top:18px; font-size:1.1rem; padding:12px;" onclick="sendAction('resolve_training_phase')">
                 ⚖️ 結算訓練屬性增益並接受任務

@@ -484,11 +484,19 @@ const server = http.createServer((req, res) => {
           room.usedEventIds.push(ev.id);
           room.currentEvent = ev;
           room.eventHistory.unshift(ev);
-          room.phase = 'ROLL_TRAINING';
+
+          // 重設前置狀態
+          room.eventPrecheck = null;
+          room.pendingStatChoices = null;
+          room.eventRerollUsed = {};
+          room.players.forEach(p => {
+            p.eventCheckFailed = false;
+            p.eventCheckRoll = null;
+          });
 
           addLog(room, `【突發狀況】事件卡 #${ev.id}【${ev.name}】：${ev.description}（影響：${ev.effect}）`);
 
-          // 立即結算型事件
+          // 立即型事件 (事件 13、18)
           if (ev.effectType === 'grant_reward') {
             const rew = ev.effectPayload.reward;
             const amt = ev.effectPayload.amount || 1;
@@ -501,7 +509,162 @@ const server = http.createServer((req, res) => {
             room.players.forEach(p => { p.stats[st] = (p.stats[st] || 1) + amt; });
             addLog(room, `【素質強化】全體官兵 ${st} 屬性增加 ${amt} 點！`);
           }
+
+          // 需玩家選擇屬性增減的事件 (事件 1, 4, 7, 8, 16)
+          if (['choice_stat_loss', 'choice_stat_gain', 'choice_any_gain'].includes(ev.effectType)) {
+            room.pendingStatChoices = {
+              eventId: ev.id,
+              name: ev.name,
+              effectType: ev.effectType,
+              options: ev.effectPayload.options || ['strength', 'agility', 'endurance', 'intelligence'],
+              amount: ev.effectPayload.amount || 1,
+              isGain: ev.effectType.includes('gain'),
+              resolvedPlayerIds: []
+            };
+            addLog(room, `【屬性決策】請官兵針對突發事件【${ev.name}】進行素質${ev.effectType.includes('gain') ? '提升' : '扣減'}選擇！`);
+          }
+
+          // 需額外前置判定的事件（事件 5 豪大雨、事件 9 營區大停電）
+          if (ev.effectType === 'check_continue') {
+            const checkStat = ev.effectPayload.stat; // 'endurance' 或 'agility'
+            const checkTarget = ev.effectPayload.target || 2;
+            room.phase = 'EVENT_CHECK';
+            room.eventPrecheck = {
+              active: true,
+              eventId: ev.id,
+              name: ev.name,
+              stat: checkStat,
+              target: checkTarget,
+              title: ev.id === 9 ? '⚡ 啟用備用發電機應變判定' : '🌧️ 豪大雨突圍體能檢驗',
+              rolls: {}
+            };
+            const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+            addLog(room, `【緊急突發】訓練因【${ev.name}】中斷！全體官兵必須先進行【${statNameMap[checkStat]}】判定（需擲出 ${checkTarget} 顆成功面）方可繼續訓練，否則訓練判定失敗！`);
+          } else {
+            room.phase = 'ROLL_TRAINING';
+          }
           handled = true;
+        }
+
+        // 突發事件前置檢驗擲骰（如啟用發電機、豪大雨突圍）
+        if (action === 'roll_event_precheck') {
+          const { playerId } = payload;
+          const player = room.players.find(p => p.id === playerId);
+          if (player && room.eventPrecheck && room.eventPrecheck.active) {
+            const statKey = room.eventPrecheck.stat;
+            const diceCount = Math.max(1, player.stats[statKey] || 1);
+            const threshold = room.config.systemSettings.diceSuccessThreshold || 4;
+            const rolls = [];
+            let successes = 0;
+            for (let i = 0; i < diceCount; i++) {
+              const val = Math.floor(Math.random() * 6) + 1;
+              const ok = val >= threshold;
+              if (ok) successes++;
+              rolls.push({ value: val, isSuccess: ok });
+            }
+            const passed = successes >= room.eventPrecheck.target;
+            player.eventCheckRoll = {
+              rolls,
+              diceCount,
+              successes,
+              target: room.eventPrecheck.target,
+              passed
+            };
+            player.eventCheckFailed = !passed;
+            if (!passed) {
+              player.trainingSuccess = false; // 直接判定本次訓練失敗！
+            }
+            room.eventPrecheck.rolls[playerId] = player.eventCheckRoll;
+
+            const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+            addLog(room, `【應變判定】「${player.name}」投擲 ${diceCount} 顆【${statNameMap[statKey]}】骰，命中 ${successes}/${room.eventPrecheck.target} ── ${passed ? '✓ 應變成功！獲准繼續專長訓練' : '✗ 應變失敗！發電機未啟動/突圍受阻，本輪訓練被迫中斷失敗'}`);
+            handled = true;
+          }
+        }
+
+        // 完成前置檢驗，進入專長訓練考核
+        if (action === 'finish_event_precheck') {
+          room.players.forEach(player => {
+            if (!player.eventCheckRoll && room.eventPrecheck) {
+              const statKey = room.eventPrecheck.stat;
+              const diceCount = Math.max(1, player.stats[statKey] || 1);
+              const threshold = room.config.systemSettings.diceSuccessThreshold || 4;
+              let successes = 0;
+              const rolls = [];
+              for (let i = 0; i < diceCount; i++) {
+                const val = Math.floor(Math.random() * 6) + 1;
+                const ok = val >= threshold;
+                if (ok) successes++;
+                rolls.push({ value: val, isSuccess: ok });
+              }
+              const passed = successes >= room.eventPrecheck.target;
+              player.eventCheckRoll = { rolls, diceCount, successes, target: room.eventPrecheck.target, passed };
+              player.eventCheckFailed = !passed;
+              if (!passed) player.trainingSuccess = false;
+              room.eventPrecheck.rolls[player.id] = player.eventCheckRoll;
+            }
+          });
+          room.phase = 'ROLL_TRAINING';
+          addLog(room, '【應變結束】突發情境處理完畢，全員進入專長訓練考核階段！');
+          handled = true;
+        }
+
+        // 玩家進行事件屬性增減選擇（事件 1, 4, 7, 8, 16）
+        if (action === 'resolve_event_stat_choice') {
+          const { playerId, chosenStat } = payload;
+          const player = room.players.find(p => p.id === playerId);
+          if (player && room.pendingStatChoices && chosenStat) {
+            const { isGain, amount, options } = room.pendingStatChoices;
+            const validOptions = options || ['strength', 'agility', 'endurance', 'intelligence'];
+            if (validOptions.includes(chosenStat)) {
+              const minVal = room.config.systemSettings.minStatValue || 1;
+              const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
+              if (isGain) {
+                player.stats[chosenStat] = (player.stats[chosenStat] || 1) + amount;
+                addLog(room, `【素質提升】「${player.name}」因【${room.pendingStatChoices.name}】提升了 ${amount} 點【${statNameMap[chosenStat]}】（現值：${player.stats[chosenStat]}）！`);
+              } else {
+                player.stats[chosenStat] = Math.max(minVal, (player.stats[chosenStat] || 1) - amount);
+                addLog(room, `【素質扣減】「${player.name}」因【${room.pendingStatChoices.name}】失去了 ${amount} 點【${statNameMap[chosenStat]}】（現值：${player.stats[chosenStat]}）。`);
+              }
+              if (!room.pendingStatChoices.resolvedPlayerIds.includes(playerId)) {
+                room.pendingStatChoices.resolvedPlayerIds.push(playerId);
+              }
+              handled = true;
+            }
+          }
+        }
+
+        // 事件 15 懇親會重擲 1 顆未命中骰子
+        if (action === 'reroll_training_dice') {
+          const { playerId, diceIndex } = payload;
+          const player = room.players.find(p => p.id === playerId);
+          if (player && player.diceResults && room.currentEvent?.id === 15 && !room.eventRerollUsed[playerId]) {
+            const rolls = player.diceResults.rolls;
+            let targetIdx = typeof diceIndex === 'number' && diceIndex >= 0 && diceIndex < rolls.length ? diceIndex : -1;
+            if (targetIdx === -1) {
+              targetIdx = rolls.findIndex(r => !r.isSuccess);
+            }
+            if (targetIdx !== -1) {
+              const threshold = room.config.systemSettings.diceSuccessThreshold || 4;
+              const newVal = Math.floor(Math.random() * 6) + 1;
+              const ok = newVal >= threshold;
+              const oldVal = rolls[targetIdx].value;
+              rolls[targetIdx] = { value: newVal, isSuccess: ok };
+
+              let newSuccesses = rolls.filter(r => r.isSuccess).length;
+              if (room.currentEvent.effectType === 'success_reduction') {
+                newSuccesses = Math.max(0, newSuccesses - (room.currentEvent.effectPayload.amount || 1));
+              }
+              const passed = newSuccesses >= player.diceResults.targetSuccesses;
+              player.diceResults.successes = newSuccesses;
+              player.diceResults.passed = passed;
+              player.trainingSuccess = passed;
+              room.eventRerollUsed[playerId] = true;
+
+              addLog(room, `【懇親加持重擲】「${player.name}」重擲第 ${targetIdx + 1} 顆骰子（${oldVal} ➔ ${newVal}），最新命中面 ${newSuccesses}/${player.diceResults.targetSuccesses} ── ${passed ? '✓ 逆轉通過！' : '✗ 仍未達標'}`);
+              handled = true;
+            }
+          }
         }
 
         // 玩家訓練擲骰
@@ -509,6 +672,13 @@ const server = http.createServer((req, res) => {
           const { playerId } = payload;
           const player = room.players.find(p => p.id === playerId);
           if (player && player.currentTrainingId) {
+            // 若前置檢驗失敗（如豪大雨或發電機未啟動），阻止擲骰
+            if (player.eventCheckFailed) {
+              addLog(room, `【操課中斷】「${player.name}」因突發情境排除失敗，本次訓練直接判定不合格！`);
+              handled = true;
+              return;
+            }
+
             const training = room.config.trainings.find(t => t.id === player.currentTrainingId);
             let targetSuccesses = training.targetSuccesses || 2;
             const intensity = Math.floor((room.round - 1) / (room.config.systemSettings.intensityDoubleEveryRounds || 5)) + 1;
@@ -590,28 +760,62 @@ const server = http.createServer((req, res) => {
 
         // 結算訓練屬性成長
         if (action === 'resolve_training_phase') {
+          // 確保未選屬性的玩家自動套用預設值，保證數值確實增減
+          if (room.pendingStatChoices) {
+            const { isGain, amount, options, name } = room.pendingStatChoices;
+            const validOptions = options || ['strength', 'agility', 'endurance', 'intelligence'];
+            const opt = validOptions[0];
+            const minVal = room.config.systemSettings.minStatValue || 1;
+            room.players.forEach(p => {
+              if (!room.pendingStatChoices.resolvedPlayerIds.includes(p.id)) {
+                if (isGain) p.stats[opt] = (p.stats[opt] || 1) + amount;
+                else p.stats[opt] = Math.max(minVal, (p.stats[opt] || 1) - amount);
+                room.pendingStatChoices.resolvedPlayerIds.push(p.id);
+                addLog(room, `【素質確認】「${p.name}」因【${name}】${isGain ? '提升' : '扣減'}【${opt}】${amount} 點！`);
+              }
+            });
+          }
+
           room.players.forEach(p => {
             const training = room.config.trainings.find(t => t.id === p.currentTrainingId);
-            if (p.trainingSuccess && training) {
+            if (p.trainingSuccess && training && !p.eventCheckFailed) {
               Object.entries(training.rewards || {}).forEach(([stat, val]) => {
                 p.stats[stat] = (p.stats[stat] || 1) + val;
               });
-              if (room.currentEvent && room.currentEvent.effectType === 'on_success_stat_gain') {
-                p.stats.strength += 1;
+              // 事件 17：大車駕駛薦訓（成功後任選一項素質+1）
+              if (room.currentEvent?.id === 17) {
+                const gainStat = p.eventBonusChoice || 'strength';
+                p.stats[gainStat] = (p.stats[gainStat] || 1) + 1;
+                addLog(room, `【大車駕駛薦訓】「${p.name}」考核過關，額外獲得【${gainStat}】+1！`);
               }
-              if (room.currentEvent && room.currentEvent.effectType === 'base_eval_event') {
-                p.stats.endurance += 1;
+              // 事件 20：基地期末鑑測（成功後任選一項素質+1）
+              if (room.currentEvent?.id === 20) {
+                const gainStat = p.eventBonusChoice || 'endurance';
+                p.stats[gainStat] = (p.stats[gainStat] || 1) + 1;
+                addLog(room, `【基地鑑測績優】「${p.name}」考核過關，額外獲得【${gainStat}】+1！`);
               }
             } else {
+              // 訓練失敗
               if (room.config.systemSettings.failurePenaltyStatEnabled) {
                 const keys = ['strength', 'agility', 'endurance', 'intelligence'];
                 const maxK = keys.reduce((a, b) => p.stats[a] > p.stats[b] ? a : b);
                 p.stats[maxK] = Math.max(1, p.stats[maxK] - 1);
               }
-              if (room.currentEvent && room.currentEvent.effectType === 'on_failure_stat_loss') {
-                const keys = ['strength', 'agility', 'endurance', 'intelligence'];
-                const maxK = keys.reduce((a, b) => p.stats[a] > p.stats[b] ? a : b);
-                p.stats[maxK] = Math.max(1, p.stats[maxK] - 1);
+              // 事件 19：長官服儀突檢（失敗者任選一項素質-1）
+              if (room.currentEvent?.id === 19) {
+                const penaltyStat = p.eventPenaltyChoice || 'strength';
+                const minVal = room.config.systemSettings.minStatValue || 1;
+                p.stats[penaltyStat] = Math.max(minVal, (p.stats[penaltyStat] || 1) - 1);
+                addLog(room, `【服儀突檢扣分】「${p.name}」考核未過，服儀扣減【${penaltyStat}】-1！`);
+              }
+              // 事件 20：基地期末鑑測（失敗者任選兩項素質各-1）
+              if (room.currentEvent?.id === 20) {
+                const minVal = room.config.systemSettings.minStatValue || 1;
+                const p1 = p.eventPenaltyChoice || 'strength';
+                const p2 = p.eventPenaltyChoice2 || 'agility';
+                p.stats[p1] = Math.max(minVal, (p.stats[p1] || 1) - 1);
+                p.stats[p2] = Math.max(minVal, (p.stats[p2] || 1) - 1);
+                addLog(room, `【基地鑑測懲處】「${p.name}」考核未過，嚴厲懲戒扣減【${p1}】-1 與【${p2}】-1！`);
               }
             }
             p.lastTrainingId = p.currentTrainingId;
@@ -621,7 +825,7 @@ const server = http.createServer((req, res) => {
           });
 
           room.phase = 'DRAW_MISSION';
-          addLog(room, '【結算完成】全體人員體魄素質提升！準備抽取實戰任務。');
+          addLog(room, '【結算完成】全體官兵體魄素質與事件影響全數結算！準備抽取實戰任務。');
           handled = true;
         }
 
