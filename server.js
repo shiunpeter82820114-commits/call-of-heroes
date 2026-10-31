@@ -394,6 +394,59 @@ const server = http.createServer((req, res) => {
           let newRoomId = generateRoomId();
           while (rooms.has(newRoomId)) newRoomId = generateRoomId();
           const room = createRoomState(newRoomId);
+
+          const { hostName, hostBirthday, hostPlayerId, isFourPlayerSim, isHostPlaying } = payload || {};
+          // 當明確提供房主參戰資料或演練模式時加入房主
+          if (hostName || hostPlayerId || isHostPlaying || isFourPlayerSim) {
+            const hostId = hostPlayerId || 'host_p1';
+            room.hostPlayerId = hostId;
+            const hostPlayer = {
+              id: hostId,
+              name: hostName || '房主新兵',
+              realBirthday: hostBirthday || '01-01',
+              roleId: null,
+              roleData: null,
+              stats: { strength: 1, agility: 1, endurance: 1, intelligence: 1 },
+              awards: { merit: 0, small: 0, large: 0, medal: 0 },
+              currentTrainingId: null,
+              lastTrainingId: null,
+              diceResults: null,
+              trainingSuccess: null,
+              isReady: false
+            };
+            room.players.push(hostPlayer);
+            addLog(room, `【作戰中心建立】房主「${hostPlayer.name}」已身兼 1 號新兵加入作戰序列。`);
+
+            // 若為四人同螢幕演練模式，一次性補齊 4 位新兵，絕不卡在無法報到！
+            if (isFourPlayerSim) {
+              const defaultRecruits = [
+                { name: '新兵 馨慧', bday: '01-14' },
+                { name: '新兵 星儀', bday: '08-15' },
+                { name: '新兵 嘉亨', bday: '04-25' },
+                { name: '新兵 彥材', bday: '11-30' }
+              ];
+              hostPlayer.name = defaultRecruits[0].name;
+              hostPlayer.realBirthday = defaultRecruits[0].bday;
+              for (let i = 1; i < 4; i++) {
+                room.players.push({
+                  id: `sim_p${i + 1}`,
+                  name: defaultRecruits[i].name,
+                  realBirthday: defaultRecruits[i].bday,
+                  roleId: null,
+                  roleData: null,
+                  stats: { strength: 1, agility: 1, endurance: 1, intelligence: 1 },
+                  awards: { merit: 0, small: 0, large: 0, medal: 0 },
+                  currentTrainingId: null,
+                  lastTrainingId: null,
+                  diceResults: null,
+                  trainingSuccess: null,
+                  isReady: false
+                });
+                addLog(room, `【新兵報到】演練戰友「${defaultRecruits[i].name}」已加入作戰序列。`);
+              }
+            }
+          }
+
           rooms.set(newRoomId, room);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, roomId: newRoomId, room }));
@@ -476,6 +529,83 @@ const server = http.createServer((req, res) => {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, playerId: pId, room }));
           return;
+        }
+
+        // 單機快速報到新兵（自動加入 1 位戰友或一鍵補齊）
+        if (action === 'quick_add_player') {
+          if (room.players.length >= 4) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: '房間編制已達 4 人上限！' }));
+            return;
+          }
+          const presetNames = ['新兵 馨慧', '新兵 星儀', '新兵 嘉亨', '新兵 彥材'];
+          const presetBdays = ['01-14', '08-15', '04-25', '11-30'];
+          const idx = room.players.length;
+          const newName = payload?.name?.trim() || presetNames[idx] || `新兵 ${idx + 1}`;
+          const newBday = payload?.birthday?.trim() || presetBdays[idx] || '06-06';
+          const newP = {
+            id: 'p_recruit_' + Math.random().toString(36).substring(2, 7),
+            name: newName,
+            realBirthday: newBday,
+            roleId: null,
+            roleData: null,
+            stats: { strength: 1, agility: 1, endurance: 1, intelligence: 1 },
+            awards: { merit: 0, small: 0, large: 0, medal: 0 },
+            currentTrainingId: null,
+            lastTrainingId: null,
+            diceResults: null,
+            trainingSuccess: null,
+            isReady: false
+          };
+          room.players.push(newP);
+          addLog(room, `【新兵報到】單機戰友「${newP.name}」（生日：${newP.realBirthday}）已完成現場報到！`);
+          handled = true;
+        }
+
+        // 移除新兵
+        if (action === 'remove_player') {
+          const { playerId } = payload || {};
+          if (room.players.length > 1 && playerId) {
+            const removed = room.players.find(p => p.id === playerId);
+            room.players = room.players.filter(p => p.id !== playerId);
+            if (removed) addLog(room, `【名冊異動】「${removed.name}」已退出作戰名冊。`);
+            handled = true;
+          }
+        }
+
+        // 一鍵隨機/智能分配身分
+        if (action === 'auto_fill_roles') {
+          const availableRoles = room.config.roles.filter(r => !room.players.some(p => p.roleId === r.id));
+          room.players.forEach(p => {
+            if (!p.roleId && availableRoles.length > 0) {
+              const r = availableRoles.shift();
+              p.roleId = r.id;
+              p.roleData = JSON.parse(JSON.stringify(r));
+              p.roleData.soldierName = p.name;
+              p.roleData.birthday = p.realBirthday;
+              p.roleData.birthdayText = p.realBirthday;
+              p.stats = { ...r.initialStats };
+              p.isReady = true;
+              addLog(room, `【身分就緒】「${p.name}」完成身分指派，擔任【${r.name}】！`);
+            }
+          });
+          handled = true;
+        }
+
+        // 一鍵隨機/智能指派訓練課目
+        if (action === 'auto_assign_trainings') {
+          room.players.forEach(p => {
+            if (!p.currentTrainingId) {
+              const statKeys = p.roleData?.advantageStats || ['endurance'];
+              const matched = room.config.trainings.find(t => t.requiredStats.some(s => statKeys.includes(s)));
+              const selected = matched || room.config.trainings[Math.floor(Math.random() * room.config.trainings.length)];
+              p.currentTrainingId = selected.id;
+              p.diceResults = null;
+              p.trainingSuccess = null;
+              addLog(room, `【課目指派】「${p.name}」完成課目指派，前往【${selected.name}】！`);
+            }
+          });
+          handled = true;
         }
 
         // 開始選角

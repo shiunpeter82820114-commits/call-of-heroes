@@ -534,6 +534,28 @@ async function sendAction(action, payload = {}) {
   }
 }
 
+// 一鍵補齊 4 名新兵
+async function sendQuickFillAllPlayers() {
+  while (currentRoom && currentRoom.players && currentRoom.players.length < 4) {
+    await sendAction('quick_add_player');
+  }
+}
+
+// 手動登記新兵
+async function addManualRecruit() {
+  const nameInput = document.getElementById('manual-recruit-name');
+  const bdayInput = document.getElementById('manual-recruit-bday');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const bday = bdayInput ? bdayInput.value.trim() : '';
+  if (!name) {
+    alert('請輸入新兵姓名或暱稱！');
+    return;
+  }
+  await sendAction('quick_add_player', { name, birthday: bday || '05-20' });
+  if (nameInput) nameInput.value = '';
+  if (bdayInput) bdayInput.value = '';
+}
+
 // 觸發具備 3D 轉動動畫的擲骰
 async function triggerAnimatedDiceRoll(playerId) {
   if (isDiceRollingAnimation) return;
@@ -625,10 +647,10 @@ function renderLobbyScreen() {
       </div>
 
       <!-- 主辦方開房 -->
-      <div class="mode-card" onclick="createHostRoom()">
+      <div class="mode-card" onclick="showHostCreateModal()">
         <div>
           <h3>🛡️ 主辦方建立房間</h3>
-          <p>作為戰情指揮中心 / 投影大螢幕！掌控遊戲節奏、推進訓練與任務、實時監控官兵數據。</p>
+          <p>作為戰情指揮中心 / 投影大螢幕！掌控遊戲節奏、推進訓練與任務，房主亦作為 1 號新兵一同參戰！</p>
         </div>
         <button class="btn" style="width:100%; justify-content:center;">建立作戰指揮室</button>
       </div>
@@ -687,23 +709,69 @@ async function startSinglePlayerGame() {
   }
 }
 
-// 主辦方建立房間
-async function createHostRoom() {
+// 主辦方建立房間（房主身兼 1 號新兵一同參戰）
+async function createHostRoom(options = {}) {
   try {
     const res = await fetch('/api/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create_room' })
+      body: JSON.stringify({
+        action: 'create_room',
+        payload: {
+          hostName: options.hostName || '房主新兵',
+          hostBirthday: options.hostBirthday || '01-01',
+          hostPlayerId: myPlayerId,
+          isFourPlayerSim: !!options.isFourPlayerSim
+        }
+      })
     });
     const data = await res.json();
     if (data.success) {
       currentRoom = data.room;
       connectRoomSSE(data.roomId);
       navigateTo(`#host?room=${data.roomId}`);
+    } else {
+      alert('無法建立房間：' + (data.message || '未知錯誤'));
     }
   } catch (e) {
     alert('無法建立房間：' + e.message);
   }
+}
+
+// 彈出主辦方開房與參戰報到視窗
+function showHostCreateModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-dialog" style="text-align:left; max-width:480px; border-color:var(--tactical-accent); box-shadow:0 0 25px rgba(82, 183, 136, 0.4);">
+      <h3 style="color:#ffd166; font-size:1.5rem; margin-bottom:10px;">🛡️ 建立作戰指揮室（房主參戰）</h3>
+      <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+        作為房主，您將身兼作戰指揮官與 1 號新兵一同選角參戰！請設定您的姓名與生日：
+      </p>
+      <div class="form-group" style="margin-bottom:12px; text-align:left;">
+        <label style="display:block; font-size:0.85rem; color:#ffd166; margin-bottom:4px;">房主士兵姓名 / 暱稱</label>
+        <input type="text" id="host-name-input" class="form-control" value="房主新兵" placeholder="請輸入姓名或暱稱">
+      </div>
+      <div class="form-group" style="margin-bottom:18px; text-align:left;">
+        <label style="display:block; font-size:0.85rem; color:#ffd166; margin-bottom:4px;">真實生日 (月-日，用於判定先鋒順位)</label>
+        <input type="text" id="host-bday-input" class="form-control" value="01-01" placeholder="格式如：08-15">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-sm" style="flex:1; justify-content:center;" onclick="this.closest('.modal-overlay').remove()">取消</button>
+        <button id="confirm-create-host-btn" class="btn btn-primary" style="flex:2; justify-content:center; font-weight:800;">
+          我準備好了！建立房間
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector('#confirm-create-host-btn').addEventListener('click', async () => {
+    const name = modal.querySelector('#host-name-input').value.trim() || '房主新兵';
+    const bday = modal.querySelector('#host-bday-input').value.trim() || '01-01';
+    modal.remove();
+    await createHostRoom({ hostName: name, hostBirthday: bday });
+  });
 }
 
 // 彈出加入房間視窗
@@ -944,15 +1012,82 @@ function renderHostPhaseOperations() {
 
   if (p === 'LOBBY') {
     return `
-      <div style="text-align:center; padding: 40px 20px;">
-        <h3 style="color:#ffd166; font-size:1.8rem; margin-bottom:12px;">作戰指揮中心就緒</h3>
-        <p style="color:var(--text-muted); margin-bottom:24px;">
-          目前已報到新兵：<strong>${currentRoom.players.length} / 4</strong> 名。<br>
-          新兵可在手機端輸入代碼【<strong>${currentRoom.roomId}</strong>】加入，或一人直接開始！
-        </p>
-        <button class="btn btn-primary" style="font-size:1.15rem; padding:12px 30px;" onclick="sendAction('start_role_selection')">
-          🚀 人員到齊，開啟招募選角
-        </button>
+      <div style="background:var(--bg-card); border:1px solid var(--border-camo); border-radius:10px; padding:20px 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h3 style="color:#ffd166; font-size:1.6rem; margin-bottom:4px;">🎖️ 新兵報到處（作戰指揮中心就緒）</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem;">
+              已報到新兵：<strong style="color:#52b788; font-size:1.1rem;">${currentRoom.players.length} / 4</strong> 名 ｜ 
+              同區網新兵可於手機輸入代碼【<strong style="color:#ffd166;">${currentRoom.roomId}</strong>】加入，或直接於下方單機快速報到！
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            ${currentRoom.players.length < 4 ? `
+              <button type="button" class="btn btn-sm btn-gold" style="font-weight:800;" onclick="sendAction('quick_add_player')">
+                ➕ 單機報到 1 位新兵
+              </button>
+              <button type="button" class="btn btn-sm btn-primary" style="font-weight:800;" onclick="sendQuickFillAllPlayers()">
+                ⚡ 一鍵補齊 4 位新兵
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- 4 格新兵報到名冊 -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:20px;">
+          ${[0, 1, 2, 3].map(idx => {
+            const pl = currentRoom.players[idx];
+            if (pl) {
+              const isHost = pl.id === currentRoom.hostPlayerId || idx === 0;
+              return `
+                <div style="background:rgba(0,0,0,0.35); border:1px solid ${isHost ? 'var(--tactical-accent)' : 'var(--border-camo)'}; border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between;">
+                  <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                      <span style="font-size:0.75rem; background:${isHost ? 'var(--tactical-accent)' : 'rgba(255,255,255,0.1)'}; color:${isHost ? '#111' : '#e2e8f0'}; font-weight:800; padding:2px 6px; border-radius:3px;">
+                        ${isHost ? '👑 房主士兵' : `新兵 #${idx + 1}`}
+                      </span>
+                      ${(!isHost && currentRoom.players.length > 1) ? `
+                        <button type="button" class="btn btn-sm btn-danger" style="padding:1px 6px; font-size:0.7rem;" onclick="sendAction('remove_player', { playerId: '${pl.id}' })">✕ 移除</button>
+                      ` : ''}
+                    </div>
+                    <div style="font-size:1.15rem; font-weight:800; color:#fff; margin-bottom:4px;">
+                      ${pl.name}
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">
+                      生日：<strong style="color:#ffd166;">${pl.realBirthday}</strong>
+                    </div>
+                  </div>
+                  <div style="margin-top:10px; font-size:0.8rem; color:#52b788; font-weight:700;">
+                    ✓ 報到完成，待分配身分
+                  </div>
+                </div>
+              `;
+            } else {
+              return `
+                <div style="background:rgba(255,255,255,0.02); border:2px dashed var(--border-camo); border-radius:8px; padding:16px; text-align:center; display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:110px;">
+                  <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:8px;">新兵席位 #${idx + 1} (待報到)</div>
+                  <button type="button" class="btn btn-sm" style="font-size:0.8rem;" onclick="sendAction('quick_add_player')">
+                    ➕ 單機加入此席
+                  </button>
+                </div>
+              `;
+            }
+          }).join('')}
+        </div>
+
+        <!-- 單機登記輸入列 -->
+        <div style="background:rgba(0,0,0,0.25); border-radius:6px; padding:10px 14px; margin-bottom:20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:0.85rem; color:#ffd166; font-weight:700;">📝 單機登記新兵：</span>
+          <input type="text" id="manual-recruit-name" placeholder="士兵姓名/暱稱" style="flex:1; min-width:140px; background:var(--bg-main); border:1px solid var(--border-camo); color:#fff; padding:6px 10px; border-radius:4px; font-size:0.85rem;">
+          <input type="text" id="manual-recruit-bday" placeholder="生日 (例: 09-03)" style="width:130px; background:var(--bg-main); border:1px solid var(--border-camo); color:#fff; padding:6px 10px; border-radius:4px; font-size:0.85rem;">
+          <button type="button" class="btn btn-sm btn-primary" onclick="addManualRecruit()">登記加入</button>
+        </div>
+
+        <div style="text-align:center;">
+          <button type="button" class="btn btn-primary" style="font-size:1.2rem; padding:12px 40px; font-weight:900; box-shadow:0 0 25px rgba(82, 183, 136, 0.4);" onclick="sendAction('start_role_selection')">
+            🚀 人員到齊，開啟招募選角 (${currentRoom.players.length} 人就位)
+          </button>
+        </div>
       </div>
     `;
   }
@@ -961,37 +1096,152 @@ function renderHostPhaseOperations() {
     const unselected = currentRoom.players.filter(pl => !pl.roleId);
     return `
       <div>
-        <h3 style="color:#ffd166; margin-bottom:8px;">招募階段（身分選擇中）</h3>
-        <p style="color:var(--text-muted); margin-bottom:16px;">
-          請各新兵在個人終端輸入自訂姓名與生日，並挑選身分（高中畢業、大學畢業、社會人士、專業人士）。
-        </p>
-        <div style="background:rgba(0,0,0,0.3); padding:16px; border-radius:8px; margin-bottom:20px;">
-          未選角人數：<strong>${unselected.length}</strong> 人
-          ${unselected.map(u => `<span style="margin-left:8px; color:#e76f51;">[${u.name}]</span>`).join('')}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="color:#ffd166; margin-bottom:4px;">身分招募階段（全員選角中）</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem;">
+              請為各官兵挑選代表身分（房主可在此選自己的身分，亦可單機直接為現場戰友選角）：
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-gold" style="font-weight:800;" onclick="sendAction('auto_fill_roles')">
+              🎲 一鍵全員隨機分配身分
+            </button>
+            <button type="button" class="btn btn-sm" style="border-color:#ffd166; color:#ffd166;" onclick="showSkillsModal()">
+              ⚡ 查看特長技能詳解
+            </button>
+          </div>
         </div>
-        <button class="btn btn-primary" ${unselected.length > 0 ? 'disabled' : ''} onclick="sendAction('finalize_roles')">
-          ✓ 全員選角完畢，比對生日決定順位並開始訓練
-        </button>
+
+        <!-- 全員選角卡片清單 -->
+        <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px;">
+          ${currentRoom.players.map(pl => {
+            const isCurHost = pl.id === currentRoom.hostPlayerId;
+            const isRoleChosen = !!pl.roleId;
+            return `
+              <div style="background:var(--bg-card); border:1px solid ${isRoleChosen ? '#52b788' : 'var(--border-camo)'}; border-radius:8px; padding:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <span style="font-size:1.15rem; font-weight:800; color:#fff;">${pl.name}</span>
+                    ${isCurHost ? '<span style="background:var(--tactical-accent); color:#111; font-weight:900; font-size:0.75rem; padding:2px 6px; border-radius:3px; margin-left:6px;">👑 房主</span>' : ''}
+                    <span style="font-size:0.85rem; color:var(--text-muted); margin-left:8px;">生日：${pl.realBirthday}</span>
+                  </div>
+                  ${isRoleChosen ? `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="color:#52b788; font-weight:800; font-size:0.95rem;">✓ 已選定：【${pl.roleData?.name}】（${pl.roleData?.soldierName}）</span>
+                      <button type="button" class="btn btn-sm btn-danger" style="padding:2px 8px; font-size:0.75rem;" onclick="sendAction('select_role', { playerId: '${pl.id}', roleId: null })">🔄 重選</button>
+                    </div>
+                  ` : '<span style="color:#ff6b6b; font-weight:800; font-size:0.85rem;">⏳ 尚未選定身分</span>'}
+                </div>
+
+                <!-- 4 大身分選項按鈕 -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+                  ${(currentRoom.config?.roles || []).map(r => {
+                    const isSelectedByThis = pl.roleId === r.id;
+                    const isTakenByOther = currentRoom.players.some(other => other.id !== pl.id && other.roleId === r.id);
+                    const disabled = isTakenByOther;
+                    return `
+                      <button type="button" class="btn" style="display:flex; flex-direction:column; align-items:flex-start; text-align:left; padding:10px 12px; background:${isSelectedByThis ? 'rgba(82,183,136,0.2)' : 'rgba(0,0,0,0.3)'}; border:2px solid ${isSelectedByThis ? '#52b788' : (disabled ? '#444' : 'var(--border-camo)')}; border-radius:6px; cursor:${disabled ? 'not-allowed' : 'pointer'}; opacity:${disabled ? '0.45' : '1'};" ${disabled ? 'disabled' : ''} onclick="sendAction('select_role', { playerId: '${pl.id}', roleId: '${r.id}', customName: '${pl.name}', customBirthday: '${pl.realBirthday}' })">
+                        <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:4px;">
+                          <strong style="color:${isSelectedByThis ? '#52b788' : '#ffd166'}; font-size:0.95rem;">${r.name}</strong>
+                          <span style="font-size:0.75rem; color:var(--text-muted);">${r.soldierName}</span>
+                        </div>
+                        <div style="font-size:0.75rem; color:#e2e8f0; margin-bottom:4px; line-height:1.4;">
+                          ★ 技能：${r.skills.map(s => s.name).join('、')}
+                        </div>
+                        <div style="font-size:0.75rem; color:${disabled ? '#ff6b6b' : (isSelectedByThis ? '#52b788' : '#74c69d')}; font-weight:700;">
+                          ${isSelectedByThis ? '✓ 本員已選定' : (disabled ? '🔒 他員已選' : '👉 點擊指派本身分')}
+                        </div>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="text-align:center;">
+          <button type="button" class="btn btn-primary" style="font-size:1.15rem; padding:12px 36px; font-weight:900;" ${unselected.length > 0 ? 'disabled' : ''} onclick="sendAction('finalize_roles')">
+            ✓ 全員選角完畢，比對生日決定順位並開始訓練 ${unselected.length > 0 ? `(尚有 ${unselected.length} 人未選)` : ''}
+          </button>
+        </div>
       </div>
     `;
   }
 
   if (p === 'SELECT_TRAINING') {
     const unassigned = currentRoom.players.filter(pl => !pl.currentTrainingId);
+    const statNameMap = { strength: '力量', agility: '靈敏', endurance: '體力', intelligence: '智慧' };
     return `
       <div>
-        <h3 style="color:#ffd166; margin-bottom:8px;">第 ${currentRoom.round} 回合：選擇訓練模式</h3>
-        <p style="color:var(--text-muted); margin-bottom:16px;">
-          本回合先鋒順位：<strong>${currentRoom.players[currentRoom.firstPlayerIndex]?.name || '無'}</strong>。<br>
-          請各位戰友在終端選定欲派遣的訓練項目。
-        </p>
-        <div style="background:rgba(0,0,0,0.3); padding:14px; border-radius:8px; margin-bottom:16px;">
-          未完成指派：<strong>${unassigned.length}</strong> 人
-          ${unassigned.map(u => `<span style="margin-left:8px; color:#e76f51;">[${u.name}]</span>`).join('')}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="color:#ffd166; margin-bottom:4px;">第 ${currentRoom.round} 回合：指派專長訓練課目</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem;">
+              本回合先鋒順位：<strong style="color:#ffd166;">【${currentRoom.players[currentRoom.firstPlayerIndex]?.name || '無'}】</strong>。請為各官兵指派訓練課目（房主可自選，亦可單機為全員指派）：
+            </p>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-gold" style="font-weight:800;" onclick="sendAction('auto_assign_trainings')">
+              🎲 一鍵全員智能指派課目
+            </button>
+            <button type="button" class="btn btn-sm" style="border-color:#ffd166; color:#ffd166;" onclick="showSkillsModal()">
+              ⚡ 查看技能觸發時機
+            </button>
+          </div>
         </div>
-        <button class="btn btn-primary" ${unassigned.length > 0 ? 'disabled' : ''} onclick="sendAction('proceed_to_event')">
-          ⏩ 全員訓練就位，進入突發事件階段
-        </button>
+
+        <!-- 全員課目指派卡片清單 -->
+        <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px;">
+          ${currentRoom.players.map(pl => {
+            const isCurHost = pl.id === currentRoom.hostPlayerId;
+            const curT = currentRoom.config?.trainings?.find(t => t.id === pl.currentTrainingId);
+            return `
+              <div style="background:var(--bg-card); border:1px solid ${curT ? '#52b788' : 'var(--border-camo)'}; border-radius:8px; padding:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <span style="font-size:1.15rem; font-weight:800; color:#fff;">${pl.name}</span>
+                    ${isCurHost ? '<span style="background:var(--tactical-accent); color:#111; font-weight:900; font-size:0.75rem; padding:2px 6px; border-radius:3px; margin-left:6px;">👑 房主</span>' : ''}
+                    <span style="font-size:0.85rem; color:#ffd166; margin-left:8px;">[${pl.roleData?.name || '新兵'}]</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted); margin-left:8px;">
+                      目前素質：力${pl.stats?.strength || 1} 敏${pl.stats?.agility || 1} 體${pl.stats?.endurance || 1} 智${pl.stats?.intelligence || 1}
+                    </span>
+                  </div>
+                  ${curT ? `
+                    <span style="color:#52b788; font-weight:800; font-size:0.95rem;">
+                      ✓ 目前指派：【${curT.name}】（檢定能力：${statNameMap[curT.requiredStats[0]]}，目標：${curT.targetSuccesses} 顆）
+                    </span>
+                  ` : '<span style="color:#ff6b6b; font-weight:800; font-size:0.85rem;">⏳ 尚未指派課目</span>'}
+                </div>
+
+                <!-- 7 大專長課目按鈕 -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                  ${(currentRoom.config?.trainings || []).map(t => {
+                    const isAssigned = pl.currentTrainingId === t.id;
+                    const mainStat = t.requiredStats[0];
+                    const playerStatVal = pl.stats[mainStat] || 1;
+                    return `
+                      <button type="button" class="btn btn-sm" style="display:flex; flex-direction:column; align-items:center; padding:8px 6px; background:${isAssigned ? 'rgba(82,183,136,0.25)' : 'rgba(0,0,0,0.3)'}; border:2px solid ${isAssigned ? '#52b788' : 'var(--border-camo)'}; border-radius:6px; cursor:pointer;" onclick="sendAction('choose_training', { playerId: '${pl.id}', trainingId: '${t.id}' })">
+                        <span style="font-size:0.85rem; font-weight:800; color:${isAssigned ? '#52b788' : '#fff'};">${t.name}</span>
+                        <span style="font-size:0.75rem; color:#ffd166; margin-top:2px;">【${statNameMap[mainStat]}】(${playerStatVal}骰)</span>
+                        <span style="font-size:0.7rem; color:${isAssigned ? '#52b788' : 'var(--text-muted)'}; margin-top:2px;">
+                          ${isAssigned ? '✓ 已指派' : '點擊指派'}
+                        </span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="text-align:center;">
+          <button type="button" class="btn btn-primary" style="font-size:1.15rem; padding:12px 36px; font-weight:900;" ${unassigned.length > 0 ? 'disabled' : ''} onclick="sendAction('proceed_to_event')">
+            ⏩ 全體官兵訓練就位，進入突發事件階段 ${unassigned.length > 0 ? `(尚有 ${unassigned.length} 人未指派)` : ''}
+          </button>
+        </div>
       </div>
     `;
   }
@@ -2310,21 +2560,11 @@ function selectRoleWithCustomData(playerId, roleId) {
 // 4. 單機同螢幕演練模式 (Solo / Pass & Play)
 // -------------------------------------------------------------
 async function startSoloMode() {
-  await createHostRoom();
-  const names = ['新兵 馨慧', '新兵 星儀', '新兵 嘉亨', '新兵 彥材'];
-  const bdays = ['01-14', '08-15', '04-25', '11-30'];
-  for (let i = 0; i < 4; i++) {
-    await fetch('/api/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'join_room',
-        roomId: currentRoom.roomId,
-        payload: { playerName: names[i], realBirthday: bdays[i], playerId: `solo_${i}` }
-      })
-    });
-  }
-  navigateTo(`#solo?room=${currentRoom.roomId}`);
+  await createHostRoom({
+    isFourPlayerSim: true,
+    hostName: '新兵 馨慧',
+    hostBirthday: '01-14'
+  });
 }
 
 function renderSoloScreen() {
