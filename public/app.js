@@ -153,6 +153,150 @@ const MISSION_STORIES = {
   }
 };
 
+// 20 種突發事件專屬故事手記
+const EVENT_STORIES = {
+  1: {
+    title: '【突發狀況：操課熱身不足拉傷】',
+    tag: '突發事件．身體意外',
+    story: '操課哨聲剛響，熱身操還沒拉開筋骨，衝刺階段大腿肌肉猛然一陣抽痛！班長急忙吹哨暫停：「身體是軍人的本錢，操課前熱身馬虎不得！」衛生營醫官迅速上前冰敷包紮，但受傷的肌肉隱隱作痛，影響了接下來的動作協調性。',
+    actionPrompt: '⚡【事件衝擊】：力量或靈敏素質選擇一項失去 1 點！',
+    tips: '💡 班長叮嚀：下回操課前，暖身操務必確實做到位！'
+  },
+  2: {
+    title: '【軍旅插曲：熱食部的歡聚時光】',
+    tag: '突發事件．弟兄情誼',
+    story: '傍晚下課時分，營區熱食部飄來陣陣排骨飯與關東煮的香氣。同袍們圍坐在長桌旁，一邊大口吃著熱騰騰的泡麵與甜不辣，一邊笑談著白天五百障礙的糗事。在歡笑聲中，連隊的默契與革命情感倍增，疲勞一掃而空，士氣大振！',
+    actionPrompt: '⚡【事件效果】：本次訓練判定結果時可多擲 1 顆作戰骰！',
+    tips: '💡 班長叮嚀：弟兄同心，其利斷金！'
+  },
+  3: {
+    title: '【軍紀糾察：室內準則課打瞌睡】',
+    tag: '突發事件．軍紀糾察',
+    story: '午後悶熱的中山室內，電風扇發出規律的嗡嗡聲，講台上教官正講解著防空識別準則。猛烈襲來的睡意讓你眼皮沉重，頭猛地點了一下——「後面那位弟兄，站起來！」被教官當場糾察記名，連坐假日留營禁足，全連的操課專注力大受打擊。',
+    actionPrompt: '⚡【事件衝擊】：本次訓練擲骰判定後，面朝上成功骰數量減少 1 顆！',
+    tips: '💡 班長叮嚀：上課打瞌睡，害人又害己，打起精神來！'
+  },
+  4: {
+    title: '【軍團殊榮：體能戰技鑑測績優】',
+    tag: '突發事件．士氣高昂',
+    story: '指揮部發布全軍團體能戰技抽測結果，本連官兵以壓倒性的綜合成績奪下全軍團前三名！旅部親自頒發獎狀與加菜金，連長在司令台上大聲讚揚大家平日嚴格自律的血汗付出，全連官兵胸膛挺拔、士氣達到巔峰！',
+    actionPrompt: '⚡【事件激勵】：力量或體力選擇一項素質增加 1 點！',
+    tips: '💡 班長叮嚀：榮譽是軍人的第二生命，繼續保持優異表現！'
+  },
+  5: {
+    title: '【天候考驗：突降狂暴豪大雨】',
+    tag: '突發事件．極端天候',
+    story: '操課進行到一半，天際忽然烏雲密布，狂風夾帶傾盆暴雨鋪天蓋地砸下！操場瞬間化為泥濘汪洋，訓練被迫緊急中斷。弟兄們抱著淋濕的步槍與器材狂奔回營舍，犧牲休息時間通宵擦槍上油與除濕保養，體力面臨極大折損。',
+    actionPrompt: '⚡【事件考驗】：訓練中斷！需進行體力擲骰判定 2 才可繼續訓練，否則本次訓練失敗！',
+    tips: '💡 班長叮嚀：風雨無阻是國軍本色，考驗大家的體魄耐力！'
+  },
+  6: {
+    title: '【傳奇神援：小蜜蜂阿鳳姐騎車殺到！】',
+    tag: '突發事件．神級補給',
+    story: '「嗶——下課休息十分鐘！」剛累趴在樹蔭下的弟兄們突然聞到一股誘人香味——「來喔！冰涼紅茶、冬瓜檸檬、熱騰騰南部蛋黃肉粽喔！」傳說中的營區小蜜蜂阿鳳姐騎著改裝野狼機車如神兵天降！一口冰奶茶入喉，全連戰力瞬間爆表！',
+    actionPrompt: '⚡【事件神效】：小蜜蜂神救援！本次訓練擲骰判定均大幅放寬，僅需 1 顆骰子即可合格！',
+    tips: '💡 班長叮嚀：民間補給力不可小覷，感謝阿鳳姐的戰力支援！'
+  },
+  7: {
+    title: '【嚴肅軍紀：高勤官夜間突襲督導】',
+    tag: '突發事件．突擊檢查',
+    story: '午夜熄燈後，寢室走廊忽然傳來皮鞋踩過大理石地板的清脆腳步聲！「夜間督導！」高階督察官手持手電筒推開寢室大門，赫然發現有弟兄未依規定就寢還在滑手機與聊天。當場被記點究辦，連帶值星幹部遭嚴厲斥責，全連氣氛瞬間降至冰點。',
+    actionPrompt: '⚡【事件衝擊】：靈敏或智慧素質選擇一項失去 1 點！',
+    tips: '💡 班長叮嚀：軍令如山、按時就寢，夜間紀律不容忽視！'
+  },
+  8: {
+    title: '【臨危受命：緊急交付專案任務】',
+    tag: '突發事件．長官賞識',
+    story: '「連長室廣播，請各班迅速派員至辦公室受領緊急任務！」面對突如其來的演習前進指揮所架設任務，弟兄們臨危不亂、迅速完成線路鋪設與戰術推演。連長看在眼裡大為讚賞：「反應機敏、辦事俐落，這才是優秀士兵的典範！」',
+    actionPrompt: '⚡【事件獎勵】：執行專案成效卓著！可選擇任意一項素質增加 1 點！',
+    tips: '💡 班長叮嚀：主動承擔責任，機會永遠留給有準備的人！'
+  },
+  9: {
+    title: '【危急搶修：營區全區大停電】',
+    tag: '突發事件．設施故障',
+    story: '砰的一聲悶響，營區所有高壓變電箱瞬間跳脫，整座營舍陷入伸手不見五指的漆黑！冷氣停擺、抽水馬達停轉、各項戰備電子器材無法通電，營區陷入一片躁動不安。值星官大喊：「工兵與應變班！摸黑拉動備用柴油發電機，即刻搶修！」',
+    actionPrompt: '⚡【事件考驗】：訓練中斷！需啟用備用發電機，進行靈敏擲骰判定 2，否則本次訓練失敗！',
+    tips: '💡 班長叮嚀：手腳要敏捷，黑暗中考驗平時應變熟悉度！'
+  },
+  10: {
+    title: '【士氣加倍：每月五號發薪小確幸】',
+    tag: '突發事件．薪餉入帳',
+    story: '「叮咚！」手機跳出郵局薪資入帳通知——「今天發薪日啦！」一個月辛勤汗水的代價化作踏實的薪餉。下課後衝向營站自動販賣機投幣買麥香奶茶，哐啷一聲竟然多掉了一瓶！弟兄們笑逐顏開，操課的疲憊瞬間煙消雲散，活力滿點！',
+    actionPrompt: '⚡【事件效果】：心情大好士氣大增！本次訓練每項素質判定均可多擲 1 顆作戰骰！',
+    tips: '💡 班長叮嚀：薪餉入袋是光榮的付出，好好犒賞自己同時不忘戰備！'
+  },
+  11: {
+    title: '【烈日熔爐：酷暑下的單兵基本教練】',
+    tag: '突發事件．酷暑高溫',
+    story: '夏季正午的大操場，溫度計水銀柱直逼 38 度紅線！滾燙的柏油地面熱浪翻滾，全身鋼盔扎紮實實重裝上陣。「立正！托槍！向右看——齊！」汗水流進眼睛刺痛無比，迷彩服早已濕透貼背，極端高溫嚴重消耗著每一位士兵的意志與體能。',
+    actionPrompt: '⚡【事件考驗】：酷暑難熬！本輪選擇力量或體力訓練項目的玩家，判定均需多 1 顆成功面才算通過！',
+    tips: '💡 班長叮嚀：適時補充水分與鹽片，防中暑小卡隨時留意！'
+  },
+  12: {
+    title: '【真情牽絆：遠方家人的思鄉問候】',
+    tag: '突發事件．牽腸掛肚',
+    story: '休息時間打開手機，收到母親與家人傳來的關懷短片：「在部隊吃得飽嗎？有沒有曬傷？全家人都為你感到驕傲！」看著家人的笑臉，離鄉背井的思鄉之情湧上心頭，思緒在親情與軍旅戰鬥之間擺盪，操課的注意力不免受到些許波動。',
+    actionPrompt: '⚡【事件考驗】：思鄉牽絆！本輪選擇靈敏或智慧訓練項目的玩家，判定均需多 1 顆成功面才算通過！',
+    tips: '💡 班長叮嚀：將對家人的思念轉化為保家衛國的堅強動力！'
+  },
+  13: {
+    title: '【軍民一心：路見車禍見義勇為】',
+    tag: '突發事件．英勇事蹟',
+    story: '放假外出搭車途中，營區聯外路口突發兩車追撞事故！車輛翻覆冒煙，情況萬分危急。官兵毫不猶豫挺身而出，冷靜協助傷患脫困、設置警告標誌並指揮後方車流，直到救護車與警車趕抵。義舉獲地方警消與民眾大力讚揚，地方新聞更專題報導！',
+    actionPrompt: '⚡【重大榮譽】：見義勇為為國軍爭光！全體官兵榮獲部隊頒發小功乙次！',
+    tips: '💡 班長叮嚀：保國衛民是軍人天職，善行義舉實至名歸！'
+  },
+  14: {
+    title: '【歡慶慶功：模範團體大啖麥當勞】',
+    tag: '突發事件．高光時刻',
+    story: '「宣布重大喜訊！本連榮獲年度國軍模範團體殊榮！」連長笑得合不攏嘴，晚上集合時中山室擺滿了十幾大箱熱騰騰的麥當勞麥克雞塊、雙層牛肉堡與薯條可樂！全連弟兄大快朵頤歡呼慶祝，在歡愉自信的氛圍下，接下來的訓練勢如破竹！',
+    actionPrompt: '⚡【士氣爆棚】：士氣勢如破竹！本次訓練直接通過考核，無需進行擲骰判定！',
+    tips: '💡 班長叮嚀：享受勝利的美味，我們是最強的模範連隊！'
+  },
+  15: {
+    title: '【溫情滿溢：部隊年度溫馨懇親會】',
+    tag: '突發事件．親友相聚',
+    story: '大禮堂外鋪上紅地毯，營區開放日迎來最期待的懇親會！父母、伴侶與親朋好友提著滿滿的保溫鍋與水果走進營區，看著曬黑卻更加結實挺拔的你，眼中滿是驕傲與感動。親友溫暖的鼓勵化作堅定後盾，讓你重拾面對所有挑戰的勇氣！',
+    actionPrompt: '⚡【心靈力量】：親友的愛給予第二次機會！本次訓練判定後，可指定 1 顆骰子重新擲骰！',
+    tips: '💡 班長叮嚀：守護所愛之人，正是我們穿上迷彩軍裝的最大意義！'
+  },
+  16: {
+    title: '【寒夜堅守：清晨二到四破曉衛哨】',
+    tag: '突發事件．疲倦值勤',
+    story: '凌晨一點四十分，安全士官手電筒光芒照在臉上：「起來換哨了，二到四營門正哨。」拖著沉重疲憊的身軀穿上防彈背心、配掛鋼盔步槍，在刺骨寒風中佇立營門兩小時，守護全營弟兄的安眠。雖然完成了使命，但通宵未眠讓體能受到不小折損。',
+    actionPrompt: '⚡【事件折損】：夜哨疲倦！力量或體力素質選擇一項失去 1 點！',
+    tips: '💡 班長叮嚀：下哨後抓緊時間補眠，調節生理機能！'
+  },
+  17: {
+    title: '【專業薦訓：中型戰術輪車大車駕訓】',
+    tag: '突發事件．專長拓展',
+    story: '部隊下達大車薦訓令！你獲選前往後勤駕訓中心，挑戰駕駛龐大的中型戰術輪車與十輪重卡。克服視線死角、精準倒車入庫、穿梭狹窄山道，這段特訓不僅拓寬了專長視野，更為個人軍旅履歷增添一筆沉甸甸的專業技術實力！',
+    actionPrompt: '⚡【專長躍進】：專業大車駕訓認證！本次訓練成功後，可任選一項素質額外增加 1 點！',
+    tips: '💡 班長叮嚀：多一項軍用執照，多一份不可取代的戰場價值！'
+  },
+  18: {
+    title: '【學海無涯：公餘進修深造有成】',
+    tag: '突發事件．知識升級',
+    story: '國軍鼓勵士兵「公餘進修、終身學習」。利用夜間與假日空檔，你克服疲勞研讀大學部推廣學分與軍事戰略學程，順利通過論文答辯取得碩士學歷！這份知識不僅充實了個人眼界，更大幅提升在部隊中分析局勢與戰術規劃的智慧。',
+    actionPrompt: '⚡【學術成就】：知識就是力量！全體官兵智慧素質直接增加 1 點！',
+    tips: '💡 班長叮嚀：智勇雙全才是現代化國防最需要的優質人才！'
+  },
+  19: {
+    title: '【嚴苛紀律：高階指揮官服儀突檢】',
+    tag: '突發事件．細節魔鬼',
+    story: '「全營停下手邊動作，全員原地接受服裝儀容特別抽檢！」高階指揮官親臨陣地，從大盤帽帽徽水平、迷彩服扣子、名條縫線到戰術皮鞋鞋面光澤逐一用放大鏡檢視。細節決定軍人成敗，稍有疏漏便會遭到無情的嚴厲扣分！',
+    actionPrompt: '⚡【細節考核】：本次訓練若判定失敗的玩家，因服儀連帶被扣分，需選擇任一項素質失去 1 點！',
+    tips: '💡 班長叮嚀：魔鬼藏在細節裡，軍人的自律從皮鞋光澤開始！'
+  },
+  20: {
+    title: '【考驗顛峰：兵科基地進訓期末大鑑測】',
+    tag: '突發事件．終極決戰',
+    story: '歷經數個月的血汗磨練，進駐三軍聯訓基地的最後驗收「期末大鑑測」全面引爆！實兵、實彈、實裝對抗，考驗著部隊最極限的戰力！贏得鑑測將受全軍表揚、功勳卓著；但若不幸落敗，則將面對全連重訓與嚴厲懲戒的雙重打擊！',
+    actionPrompt: '⚡【基地總結】：高風險高回報！成功通過者任選一項素質增加 1 點；失敗者任選兩項素質各失去 1 點！',
+    tips: '💡 班長叮嚀：全連將士用命，這是賭上全連尊嚴的最後戰役！'
+  }
+};
+
 // 累功換章未成功時的勉勵故事
 const RETRY_BRIEFING = {
   title: '【百煉成鋼．整裝再出發】',
@@ -163,6 +307,7 @@ const RETRY_BRIEFING = {
 };
 
 let lastAnnouncedPhase = null;
+let lastAnnouncedEventId = null;
 let isDiceRollingAnimation = false;
 
 // 取得當前環節應當顯示的故事手記
@@ -235,7 +380,59 @@ function showBriefingModal(phase) {
   document.body.appendChild(modal);
 }
 
+// 突發事件專屬故事指引彈窗
+function showEventBriefingModal(eventId) {
+  const ev = (currentRoom?.config?.events || []).find(e => e.id === Number(eventId)) || 
+             (currentRoom?.currentEvent?.id === Number(eventId) ? currentRoom.currentEvent : null);
+  const storyInfo = EVENT_STORIES[Number(eventId)] || {
+    title: `【突發狀況：${ev?.name || '軍旅日常'}】`,
+    tag: '突發事件．軍旅驚喜',
+    story: ev?.description || '部隊日常充滿了意料之外的狀況，考驗著大家的抗壓與應變力。',
+    actionPrompt: ev ? `⚡【事件影響】：${ev.effect}` : '🎯【新兵任務】：遵從指令，克服難關！',
+    tips: '💡 班長叮嚀：同甘共苦是國軍的傳統，所有突發事件效果均由全連官兵共同承擔與面對！'
+  };
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-dialog" style="text-align:left; max-width:580px; border-color:#ffd166; box-shadow:0 0 25px rgba(255,209,102,0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="background:#ffd166; color:#111; font-weight:900; font-size:0.8rem; padding:3px 10px; border-radius:4px;">
+          ${storyInfo.tag || '突發事件．軍旅日常'}
+        </div>
+        <span style="font-size:0.85rem; color:#ffd166; font-weight:bold;">突發事件 #${eventId}</span>
+      </div>
+      <h3 style="color:#ffd166; font-size:1.55rem; margin-bottom:12px;">${storyInfo.title}</h3>
+      
+      <div style="background:rgba(0,0,0,0.35); border-left:4px solid #ffd166; padding:12px 14px; border-radius:6px; font-size:0.95rem; color:#e2e8f0; line-height:1.65; margin-bottom:16px; font-style:italic;">
+        "${storyInfo.story}"
+      </div>
+
+      <div style="background:rgba(255, 209, 102, 0.15); border:1px solid #ffd166; padding:10px 14px; border-radius:6px; margin-bottom:14px; font-weight:700; color:#fff;">
+        ${storyInfo.actionPrompt}
+      </div>
+
+      <div style="background:rgba(0,0,0,0.25); border:1px dashed #ffd166; padding:8px 12px; border-radius:6px; font-size:0.85rem; color:#ffd166; margin-bottom:20px;">
+        ${storyInfo.tips || '💡 班長叮嚀：同袍同心，沉著應對各項軍旅考驗！'}
+      </div>
+
+      <button class="btn btn-gold" style="width:100%; justify-content:center; font-size:1.1rem; padding:12px; color:#111; font-weight:900;" onclick="this.closest('.modal-overlay').remove()">
+        我準備好了！
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
 function checkAndAutoShowBriefing(phase) {
+  // 優先檢查是否剛抽取到新突發事件：若是，彈出事件本身專屬指引，而非訓練指引！
+  if (currentRoom?.currentEvent && currentRoom.currentEvent.id !== lastAnnouncedEventId) {
+    lastAnnouncedEventId = currentRoom.currentEvent.id;
+    lastAnnouncedPhase = phase;
+    showEventBriefingModal(currentRoom.currentEvent.id);
+    return;
+  }
+
   if (phase && phase !== lastAnnouncedPhase && phase !== 'LOBBY') {
     lastAnnouncedPhase = phase;
     showBriefingModal(phase);
@@ -779,11 +976,16 @@ function renderHostPhaseOperations() {
   return '';
 }
 
-// 渲染卡片 (事件卡)
+// 渲染卡片 (事件卡) - 支援點擊整張卡片或按鈕開啟事件本身的故事手記
 function renderEventCard(ev) {
   return `
-    <div class="tactical-drawn-card">
-      <span class="card-tag-pill">突發事件 #${ev.id}</span>
+    <div class="tactical-drawn-card" onclick="showEventBriefingModal(${ev.id})" style="cursor:pointer;" title="點擊展開此事件專屬軍旅故事手記">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span class="card-tag-pill">突發事件 #${ev.id}</span>
+        <button class="btn btn-sm" style="padding:2px 8px; font-size:0.75rem; background:rgba(0,0,0,0.5); border:1px solid #ffd166; color:#ffd166;" onclick="event.stopPropagation(); showEventBriefingModal(${ev.id})">
+          📖 查看事件故事手記
+        </button>
+      </div>
       <div class="card-title-lg">${ev.name}</div>
       <div class="card-desc-box">${ev.description}</div>
       <div class="card-effect-alert">
