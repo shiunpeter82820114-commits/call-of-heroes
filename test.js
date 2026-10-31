@@ -180,12 +180,15 @@ async function runTests() {
     // 執行累功換章：
     // 3 嘉獎 => +1 小功 (小功變成 3 支)
     // 3 小功 => +1 大功 (大功變成 3 支)
-    // 3 大功 => +1 一星寶星獎章！觸發終局勝利！
+    // 3 大功 => +1 一星寶星獎章！觸發終局榮譽士兵受封！
     const victRes = await makeRequest('/api/action', 'POST', { action: 'resolve_awards_and_victory', roomId });
     assert.strictEqual(victRes.status, 200);
-    assert.strictEqual(victRes.data.room.phase, 'GAME_OVER', '達到一星寶星獎章應結束遊戲');
+    assert.strictEqual(victRes.data.room.phase, 'MEDAL_CELEBRATION', '達到一星寶星獎章應進入榮譽士兵受封階段');
     assert.ok(victRes.data.room.winners && victRes.data.room.winners.length > 0, '應有獲勝冠軍');
-    console.log(`   ✓ 累功換章精準折算成功！由「${victRes.data.room.winners[0].name}」榮獲一星寶星獎章並獲勝！`);
+    console.log(`   ✓ 累功換章精準折算成功！由「${victRes.data.room.winners[0].name}」榮獲一星寶星獎章成為榮譽士兵！`);
+
+    // 測試正式結束遊戲
+    await makeRequest('/api/action', 'POST', { action: 'finalize_game_over', roomId });
 
     // 13. 測試後台更新與重設 API
     console.log('13. 測試後台配置更新 (/api/config) 與恢復預設 (/api/config/reset)...');

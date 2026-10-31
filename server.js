@@ -385,13 +385,12 @@ const server = http.createServer((req, res) => {
           handled = true;
         }
 
-        // 玩家選角
+        // 玩家選角 (支援自訂姓名與生日覆蓋)
         if (action === 'select_role') {
-          const { playerId, roleId } = payload;
+          const { playerId, roleId, customName, customBirthday } = payload;
           const player = room.players.find(p => p.id === playerId);
           const roleConfig = room.config.roles.find(r => r.id === roleId);
           if (player && roleConfig) {
-            // 檢查是否被別人搶先選
             const taken = room.players.some(p => p.id !== playerId && p.roleId === roleId);
             if (taken) {
               res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -399,10 +398,21 @@ const server = http.createServer((req, res) => {
               return;
             }
             player.roleId = roleId;
-            player.roleData = roleConfig;
+            // 複製一份並以玩家自訂姓名與生日替換
+            const customRole = JSON.parse(JSON.stringify(roleConfig));
+            if (customName && customName.trim()) {
+              player.name = customName.trim();
+              customRole.soldierName = customName.trim();
+            }
+            if (customBirthday && customBirthday.trim()) {
+              player.realBirthday = customBirthday.trim();
+              customRole.birthday = customBirthday.trim();
+              customRole.birthdayText = customBirthday.trim();
+            }
+            player.roleData = customRole;
             player.stats = { ...roleConfig.initialStats };
             player.isReady = true;
-            addLog(room, `【身分定讞】玩家「${player.name}」確認擔任【${roleConfig.name} - ${roleConfig.soldierName}】。`);
+            addLog(room, `【身分定讞】玩家「${player.name}」確認擔任【${customRole.name} - ${customRole.soldierName}】。`);
             handled = true;
           }
         }
@@ -783,8 +793,8 @@ const server = http.createServer((req, res) => {
             const topScore = scoreCalc(victoryPlayers[0]);
             const winners = victoryPlayers.filter(p => scoreCalc(p) === topScore);
 
-            room.phase = 'GAME_OVER';
-            room.winners = winners.map(w => ({
+            room.phase = 'MEDAL_CELEBRATION'; // 彈出榮譽士兵受封畫面，可選完賽或其餘人繼續
+            room.recentMedalWinners = winners.map(w => ({
               id: w.id,
               name: w.name,
               roleName: w.roleData?.name,
@@ -792,7 +802,8 @@ const server = http.createServer((req, res) => {
               awards: { ...w.awards },
               score: topScore
             }));
-            addLog(room, `【勳章頒授．全軍凱旋】官兵【${winners.map(w => w.name).join(' 與 ')}】榮獲一星寶星獎章，功勳卓著，贏得最終勝利！`);
+            room.winners = room.recentMedalWinners;
+            addLog(room, `【榮譽士兵誕生】恭喜官兵【${winners.map(w => w.name).join(' 與 ')}】榮獲一星寶星獎章，率先成為首批榮譽士兵！`);
           } else {
             room.round += 1;
             room.intensityMultiplier = Math.floor((room.round - 1) / (room.config.systemSettings.intensityDoubleEveryRounds || 5)) + 1;
@@ -805,9 +816,34 @@ const server = http.createServer((req, res) => {
             room.currentEvent = null;
             room.currentMission = null;
             room.teamMissionDicePool = {};
+            room.lastAwardFailedNeedEncourage = true; // 標記未換成勳章，觸發勉勵故事指引
             room.phase = 'SELECT_TRAINING';
-            addLog(room, `【晉升新回合】進入第 ${room.round} 回合！首位行動者交棒給「${room.players[room.firstPlayerIndex].name}」。訓練強度倍率：x${room.intensityMultiplier}。`);
+            addLog(room, `【晉升新回合】進入第 ${room.round} 回合！功績尚未積滿，全連弟兄百煉成鋼，繼續受訓！首位行動者輪替至「${room.players[room.firstPlayerIndex].name}」。`);
           }
+          handled = true;
+        }
+
+        // 其餘官兵繼續挑戰下一枚勳章
+        if (action === 'continue_game_for_remaining') {
+          room.round += 1;
+          room.intensityMultiplier = Math.floor((room.round - 1) / (room.config.systemSettings.intensityDoubleEveryRounds || 5)) + 1;
+          room.firstPlayerIndex = (room.firstPlayerIndex + 1) % room.players.length;
+          room.players.forEach(p => {
+            p.currentTrainingId = null;
+            p.diceResults = null;
+            p.trainingSuccess = null;
+          });
+          room.currentEvent = null;
+          room.currentMission = null;
+          room.teamMissionDicePool = {};
+          room.phase = 'SELECT_TRAINING';
+          addLog(room, `【再接再厲】榮譽士兵已載入英雄榜！其餘戰友進入第 ${room.round} 回合，繼續爭取專屬榮譽勳章！`);
+          handled = true;
+        }
+
+        // 正式結束遊戲
+        if (action === 'finalize_game_over') {
+          room.phase = 'GAME_OVER';
           handled = true;
         }
 

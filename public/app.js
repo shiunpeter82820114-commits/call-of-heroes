@@ -1,58 +1,58 @@
 // 《勇者的召喚》前端遊戲核心邏輯
 
-// 各階段故事性軍旅敘事手記與行動指引
+// 各階段故事性軍旅敘事手記與行動指引 (無第X章，主題式敘事)
 const PHASE_BRIEFINGS = {
   'LOBBY': {
-    title: '【第一章：營區大門的清晨】',
+    title: '【營區大門的清晨】',
     tag: '軍旅序曲．入伍集結',
     story: '清晨六點，軍營大門伴隨著鐵門滾輪聲緩緩拉開，晨霧中瀰漫著青草露水與緊張期待的氣息。來自台灣各地的年輕弟兄們背著行囊陸續步入大禮堂，即將告別舒適圈，展開這段考驗意志、淬鍊體魄的志願役士兵生涯。輔導長面帶微笑，指揮著值星班長發放兵籍資料表。',
     actionPrompt: '🎯【新兵任務】：拿出手機或行動設備，輸入作戰室代號完成報到！全員到齊後，班長即刻宣布開拔！',
     tips: '💡 班長叮嚀：若是獨自一人前來挑戰，首頁亦備有「單兵生涯模式」，隨時可隻身踏上榮譽征途！'
   },
   'SELECT_ROLE': {
-    title: '【第二章：被招募員的起跑線】',
+    title: '【迷彩的起跑線】',
     tag: '身分招募．天生我材',
-    story: '大禮堂的投影片閃爍，招募官精神抖擻地介紹各管道特色：「部隊需要各路人才！高中畢業的楊馨慧活力充沛、體能驚人；大學畢業的林星儀博學冷靜、擅長敏銳判斷；在社會闖蕩多年的蔡嘉亨沉著穩健、極具領導魄力；而身懷資訊戰略專長的黃彥材則思維縝密、長於科技運籌。」每個人帶來不同的天賦與技能，在部隊中找到屬於自己的定位。',
-    actionPrompt: '🎯【新兵任務】：認真思考你的特長，挑選你在軍旅生涯中要扮演的角色身分！',
+    story: '大禮堂的投影片閃爍，招募員精神抖擻地介紹各管道特色：「部隊需要各路人才！不管事高中畢業的活力充沛、體能驚人；大學畢業的博學冷靜、擅長敏銳判斷；在社會闖蕩多年的沉著穩健、極具領導魄力；而身懷資訊戰略專長的則思維縝密、長於科技運籌。」每個人帶來不同的天賦與技能，在部隊中找到屬於自己的定位。',
+    actionPrompt: '🎯【新兵任務】：請填寫您的真實姓名與生日，並挑選代表身分，替代人物資料開啟專屬傳奇！',
     tips: '💡 班長叮嚀：選定身分後，系統將比對角色生日與你的真實生日，相隔最近者將獲選為「本輪先鋒第一棒」！'
   },
   'SELECT_TRAINING': {
-    title: '【第三章：操場上的迷彩哨音】',
+    title: '【操場上的迷彩哨音】',
     tag: '部隊操課．專長鍛鍊',
     story: '「嗶——！各連注意，依課表帶開進行專長訓練！」值星官清脆哨聲劃破天際。大操場上長跑連隊步伐整齊、口號震天；重訓室內槓鈴與汗水交織；五百公尺障礙場鐵絲網泥濘飛濺；靶場更傳來 175 公尺步槍射擊的震撼巨響。每一次的課目選擇，都是向極限挑戰、打造鋼鐵體魄的決策。',
     actionPrompt: '🎯【新兵任務】：評估自身的強項，選定本回合欲派遣挑戰的訓練場地（跑步、重力、障礙、狙擊、快射、戰備演練、應變演練）！',
     tips: '⚠️ 連長警示：部隊訓練是循序漸進的！每經過 5 個回合，因訓練強度升級，通過考核所需之骰子成功面將會自動加倍！'
   },
   'EVENT': {
-    title: '【第四章：迷彩日常的酸甜苦辣】',
+    title: '【迷彩日常的酸甜苦辣】',
     tag: '突發事件．軍旅驚喜',
     story: '「報告連長！營區外傳來機車引擎聲！」剛下課的弟兄們驚喜歡呼——原來是傳說中的「小蜜蜂阿鳳姐」騎車來賣熱騰騰的肉粽與冰奶茶，神救援瞬間補滿全連士氣！但軍旅生活總是充滿意料之外，有時可能突逢大雷雨裝備淋濕、半夜衛哨值勤疲憊萬分、或是營區跳電得緊急搶修。這些酸甜苦辣的日常瑣事，考驗著大家的抗壓與應變力。',
     actionPrompt: '🎯【新兵任務】：由首位玩家翻開突發事件卡！共同承擔本日部隊遭遇的突發情境與影響！',
     tips: '💡 班長叮嚀：同甘共苦是國軍的傳統，所有突發事件效果均由全連官兵共同承擔與面對！'
   },
   'ROLL_TRAINING': {
-    title: '【第五章：汗水凝結的驗收時刻】',
+    title: '【汗水凝結的驗收時刻】',
     tag: '考核檢定．命運之骰',
     story: '「深呼吸，視線透過覘孔對準目標靶心，食指平穩扣住扳機！」教官手持碼表在旁嚴肅評核。陽光灑在士兵黝黑堅毅的臉龐上，額頭滴落的每一顆汗水，都將在此刻轉化為真實的成果。身旁的同袍為你加油打氣，專屬特長技能也在此時爆發。拿起象徵榮耀與機率的作戰骰，成敗在此一舉！',
     actionPrompt: '🎯【新兵任務】：點擊「🎲 投擲作戰判定骰」！擲出代表國徽金星芒（4點以上）的命中面，拿下合格評定！',
     tips: '💡 班長叮嚀：考核通過者，下一動將獲得對應的力量、靈敏、體力或智慧素質實質飛躍提升！'
   },
   'DRAW_MISSION': {
-    title: '【第六章：戰備鈴響！實兵任務來臨】',
+    title: '【戰備鈴響！實兵任務來臨】',
     tag: '實兵考驗．出動指令',
     story: '急促的戰備警報突然在各營舍大樓響起！「全副武裝，五分鐘後司令台前集合完畢！」這不再是平日單純的體能鍛鍊，而是真正的部隊實兵任務考驗！不管是颱風過後投入地方搶救災害重建家園、暗夜中的數十公里負重急行軍、營區防護反特攻演練，還是規格宏大的三軍聯合漢光演習，考驗著士兵平日精練的本領。',
     actionPrompt: '🎯【新兵任務】：全員就戰鬥位置！抽取部隊任務令，了解本次作戰的考核目標與獲勝功獎！',
     tips: '💡 班長叮嚀：任務包含「個人素質檢核」、「競賽爭冠」以及「全連同心協力投骰達標」三大作戰型態！'
   },
   'RESOLVE_MISSION': {
-    title: '【第七章：凱旋歸營與榮譽勳表】',
+    title: '【凱旋歸營與榮譽勳表】',
     tag: '任務驗收．功獎榮光',
     story: '夕陽餘暉灑滿營區道路，各連弟兄邁著疲累卻驕傲的步伐凱旋歸營。司令台上，旅長親自宣讀本次任務立功官兵名單：「在救災第一線奮不顧身的弟兄、在射擊鑑測命中滿靶的射手、以及齊心協力完成漢光任務的全體班兵，你們是部隊的驕傲！」榮譽的嘉獎與小功、大功功獎，在此刻光榮頒發！',
     actionPrompt: '🎯【新兵任務】：檢核任務達成情況！合格士兵榮獲部隊頒發功獎，累積個人榮耀成就！',
     tips: '💡 班長叮嚀：平日積累的嘉獎小功，在下個環節將能折換成璀璨閃爍的晉升勳章！'
   },
   'AWARDS_VICTORY': {
-    title: '【第八章：榮耀加冕．寶星勳章的光芒】',
+    title: '【榮耀加冕．寶星勳章的光芒】',
     tag: '累功換章．全軍凱旋',
     story: '部隊講求功獎分明，積沙成塔。「3 支嘉獎折換 1 支小功，3 支小功晉升 1 支大功，而累積滿 3 支大功的勇者，將獲頒國軍最高榮譽代表——『一星寶星獎章』！」榮譽軍旗在風中飄揚，配掛上一星寶星獎章的士兵，不僅證明了自己的蛻變與成長，更將成為全軍模範勇者，贏得最終勝利！',
     actionPrompt: '🎯【新兵任務】：點擊「⭐ 執行累功換章」，系統將折算累積功績！若有官兵取得一星寶星獎章，即刻敲響全軍勝利凱歌！',
@@ -60,10 +60,134 @@ const PHASE_BRIEFINGS = {
   }
 };
 
+// 7 種訓練專屬故事指引
+const TRAINING_STORIES = {
+  'train_1': {
+    title: '【三千公尺長跑極限考驗】',
+    story: '烈日當頭，營區大操場的紅土跑道上塵土微揚。「一！二！一！二！」全連步伐整齊、呼吸急促，汗水早已浸濕迷彩上衣。這是對心肺極限與意志耐力的終極淬鍊，唯有超越體能瓶頸，方能蛻變為具備鋼鐵耐力的前線士兵！',
+    actionPrompt: '🎯【新兵考核】：投擲體力判定骰，展現長跑耐力！'
+  },
+  'train_2': {
+    title: '【健身房的鋼鐵淬鍊】',
+    story: '體育館健身房內金屬撞擊聲鏗鏘作響。握緊冰冷沉重的槓鈴，深蹲、臥推與硬舉交替進行，手臂與大腿肌肉在極限重量下緊繃燃燒。汗水滴落在橡膠地墊上，每一次的推舉，都在累積突破重圍的強悍爆發力！',
+    actionPrompt: '🎯【新兵考核】：投擲力量判定骰，爆發重訓力量！'
+  },
+  'train_3': {
+    title: '【五百障礙泥濘突破】',
+    story: '雙腳踩進濕滑泥地，前方是三公尺高牆、獨木橋與低姿匍匐鐵絲網！「低姿、前進！」身著迷彩服的士兵在碎石泥濘中貼地前進，手肘膝蓋緊密配合，既要靈巧敏捷躲過障礙，又要保持冷靜判斷最短穿越路線！',
+    actionPrompt: '🎯【新兵考核】：投擲靈敏判定骰，身手俐落通過障礙！'
+  },
+  'train_4': {
+    title: '【175公尺臥姿步槍精準射擊】',
+    story: '「射擊線預備！左線預備、右線預備、全線預備——開保險，開始射擊！」趴在臥射土台上，微調呼吸與心跳，視線專注透過覘孔對準遠方 175 公尺人形靶心，食指平穩均勻扣下扳機，槍響瞬間驗證射手的沉著與智謀！',
+    actionPrompt: '🎯【新兵考核】：投擲智慧判定骰，精準命中靶心！'
+  },
+  'train_5': {
+    title: '【近戰CQB快速反應射擊】',
+    story: '步入近戰戰鬥屋，四周空間狹窄險惡。轉角瞬間靶標突然彈出！「辨識、抬槍、瞄準、射擊！」動作如行雲流水，毫秒之間完成目標鎖定與連續射擊，極致考驗射手的高壓反應速度與精準控槍能力！',
+    actionPrompt: '🎯【新兵考核】：投擲靈敏與力量判定骰，展現極限反應速度！'
+  },
+  'train_6': {
+    title: '【班作戰指揮防線演練】',
+    story: '「煙幕彈掩護！一兵推進火力掩護，二兵搶佔側翼高地！」防空戰備哨音劃破天空，班長展開戰術地圖，帶領全班構築交叉火網。面對模擬敵軍進襲，考驗著士兵的臨戰指揮思維、隊形變換與頑強戰鬥意志！',
+    actionPrompt: '🎯【新兵考核】：投擲智慧與力量判定骰，構築堅強戰術防線！'
+  },
+  'train_7': {
+    title: '【營區緊急突發應變處置】',
+    story: '「警報！營區突發緊急狀況，全連即刻出動應變！」各班兵攜帶搶險與戰術器材飛奔至集結點，分工合作進行損管控制、傷患後送與防禦佈署。在混亂緊張的突發情境中，唯有團隊協作與過人體力才能化險為夷！',
+    actionPrompt: '🎯【新兵考核】：投擲體力與靈敏判定骰，迅速排除營區突發危機！'
+  }
+};
+
+// 10 種部隊任務專屬故事指引
+const MISSION_STORIES = {
+  'mission_1': {
+    title: '【部隊生活環境整肅大出操】',
+    story: '「各班注意，將訓練場地與各連營舍徹底清整復原！」完成高強度操課後，官兵們拿著掃具洗刷器材、檢整場地。看似平凡的清潔出操，實則是培養軍人注重細節、嚴守紀律與環境整潔的核心基礎。',
+    actionPrompt: '🎯【任務目標】：靈敏 3 點及體力 3 點以上合格！'
+  },
+  'mission_2': {
+    title: '【全連武器裝備年度大檢閱】',
+    story: '「槍枝零附件逐一拆解、擦拭上油，光學器材與重兵器全面校正！」每年一度的盛大裝檢來臨，裝備就是軍人的第二生命。高級長官親臨靶溝與兵工庫逐一抽查，唯有平日維保細心、力量與智慧兼備的連隊才能榮獲績優！',
+    actionPrompt: '🎯【任務目標】：力量 3 點及智慧 3 點以上合格！'
+  },
+  'mission_3': {
+    title: '【個人內務豆腐乾棉被之戰】',
+    story: '晨檢時間到，值星官手持木板走進寢室，仔細測量床鋪棉被的邊角直線。「棉被要捏出線、摺成稜角分明的豆腐乾！」內務是軍人自律的最高體現，在嚴格評比中奪得全連第一的士兵，將是眾人景仰的模範標竿！',
+    actionPrompt: '🎯【任務目標】：智慧達 4 以上，且靈敏最高者成功！'
+  },
+  'mission_4': {
+    title: '【全軍年度基本體能大鑑測】',
+    story: '國軍三項體能大鑑測正式登場！兩分鐘伏地挺身、仰臥起坐與三千公尺跑步，測驗官手按碼表嚴格計次。「加油！堅持下去！」在同袍的震天吶喊聲中，體魄最強大的勇士將超越極限，奪下全連冠軍榮耀！',
+    actionPrompt: '🎯【任務目標】：體力達 4 以上，且力量最高者成功！'
+  },
+  'mission_5': {
+    title: '【步槍實彈滿靶神射手對決】',
+    story: '實彈射擊鑑測現場，氣氛肅殺凝重。臥姿上膛、微風輕拂靶場，每一發子彈的彈道都考驗著精準計算與沉著心理。報靶台傳來陣陣歡呼，在眾多神射手之中，唯有技壓全場的頂尖射手能榮獲連長頒發小功表揚！',
+    actionPrompt: '🎯【任務目標】：靈敏達 4 以上，且智慧最高者成功！'
+  },
+  'mission_6': {
+    title: '【星光下的負重暗夜急行軍】',
+    story: '夜色深沉，全連弟兄背負二十公斤重裝，頭戴鋼盔在無月光的山林道中隱密推進。遠方蟲鳴與沉重的呼吸聲交織，黑暗中考驗著方向辨識、肌耐力與意志力，堅持走到終點且體力最佳的士兵將脫穎而出！',
+    actionPrompt: '🎯【任務目標】：力量達 4 以上，且體力最高者成功！'
+  },
+  'mission_7': {
+    title: '【營區反特攻安全防衛演習】',
+    story: '「防空警報鳴響！營區周界突發不明滲透威脅！」營長下達全營防護警戒動員令。所有玩家官兵必須緊急討論協商，選定一項最具優勢的素質聯合出擊，合力擲骰構築防護網，共同確保營區安全！',
+    actionPrompt: '🎯【任務目標】：全體討論選定一項素質分別判定，合計成功面達 8 顆即全體過關！'
+  },
+  'mission_8': {
+    title: '【風災馳援！前進災區搶救家園】',
+    story: '強烈颱風過境，地方鄉鎮遭遇土石流與淹水災情。「苦民所苦，疾民所疾！」國軍部隊聞聲馳援，弟兄們跳進泥濘濁水協助清理道路、搶救物資、安置災民。全連同舟共濟合力擲骰達標，為災區居民重建溫暖家園！',
+    actionPrompt: '🎯【任務目標】：全體討論選定一項素質判定，合計成功面達 10 顆即全體榮立小功兩次！'
+  },
+  'mission_9': {
+    title: '【兵科專業基地進訓總鑑測】',
+    story: '部隊移防進駐專業訓練基地，迎來長達數週的魔鬼鑑測期！每一位官兵都必須分別接受戰技（力量）、體能（體力）、射擊（靈敏）與專業技能（智慧）四項全能大考驗，全部過關者方能取得基地合格認證！',
+    actionPrompt: '🎯【任務目標】：每位玩家 4 項素質各進行測試，判定成功面均達 3 顆以上即獲大功乙次！'
+  },
+  'mission_10': {
+    title: '【三軍聯合實兵漢光演習】',
+    story: '國軍年度最重要的實兵實彈戰役——「漢光演習」震撼登場！陸海空三軍聯合指揮，戰車轟鳴、戰機呼嘯，全體官兵在各作戰區堅守陣地。唯有全連發揮最強默契、集中最強素質聯合擲骰達標，方能圓滿完成重大演習任務！',
+    actionPrompt: '🎯【任務目標】：全體討論選定一項素質判定，合計成功面達 12 顆即全體獲大功乙次！'
+  }
+};
+
+// 累功換章未成功時的勉勵故事
+const RETRY_BRIEFING = {
+  title: '【百煉成鋼．整裝再出發】',
+  tag: '勉勵精進．砥礪前行',
+  story: '「功績尚未積滿，革命仍須努力！」值星官拍了拍弟兄們的肩膀，語氣充滿肯定與期許：「軍人的榮譽不是一蹴可幾的，每一滴流在操場的汗水都不會白流！」弟兄們迅速整理好迷彩服與鋼盔，眼神中閃爍著更加堅毅的光芒，準備迎接下一輪更精實的訓練與任務，繼續向一星寶星獎章大步邁進！',
+  actionPrompt: '🎯【部隊集結】：整裝完畢！進入下一輪訓練課目，百煉成鋼！',
+  tips: '💡 班長叮嚀：繼續累積嘉獎與小功，離最高榮譽一星寶星獎章越來越近了！'
+};
+
 let lastAnnouncedPhase = null;
+let isDiceRollingAnimation = false;
+
+// 取得當前環節應當顯示的故事手記
+function getCurrentPhaseStory(phase) {
+  if (phase === 'SELECT_TRAINING' && currentRoom?.lastAwardFailedNeedEncourage) {
+    return RETRY_BRIEFING;
+  }
+  if (phase === 'ROLL_TRAINING') {
+    const me = currentRoom?.players?.find(p => p.id === myPlayerId) || currentRoom?.players?.[0];
+    const tid = me?.currentTrainingId || currentRoom?.players?.[0]?.currentTrainingId;
+    if (tid && TRAINING_STORIES[tid]) {
+      return { ...PHASE_BRIEFINGS['ROLL_TRAINING'], ...TRAINING_STORIES[tid] };
+    }
+  }
+  if (phase === 'RESOLVE_MISSION' || phase === 'DRAW_MISSION') {
+    const mid = currentRoom?.currentMission?.id;
+    if (mid && MISSION_STORIES[mid]) {
+      return { ...PHASE_BRIEFINGS[phase], ...MISSION_STORIES[mid] };
+    }
+  }
+  return PHASE_BRIEFINGS[phase];
+}
 
 function renderBriefingBanner(phase) {
-  const info = PHASE_BRIEFINGS[phase];
+  const info = getCurrentPhaseStory(phase);
   if (!info) return '';
   return `
     <div class="phase-briefing-banner">
@@ -76,13 +200,13 @@ function renderBriefingBanner(phase) {
         "${info.story}"
       </div>
       <div class="briefing-desc" style="color:#ffd166; font-size:0.95rem;">${info.actionPrompt}</div>
-      <div class="briefing-tip" style="margin-top:4px;">${info.tips}</div>
+      <div class="briefing-tip" style="margin-top:4px;">${info.tips || ''}</div>
     </div>
   `;
 }
 
 function showBriefingModal(phase) {
-  const info = PHASE_BRIEFINGS[phase];
+  const info = getCurrentPhaseStory(phase);
   if (!info) return;
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -100,11 +224,11 @@ function showBriefingModal(phase) {
       </div>
 
       <div style="background:rgba(0,0,0,0.25); border:1px dashed var(--border-camo); padding:8px 12px; border-radius:6px; font-size:0.85rem; color:#ffd166; margin-bottom:20px;">
-        ${info.tips}
+        ${info.tips || '各連注意，遵從班長口令行動！'}
       </div>
 
       <button class="btn btn-primary" style="width:100%; justify-content:center; font-size:1.1rem; padding:12px;" onclick="this.closest('.modal-overlay').remove()">
-        🫡 收到作戰指引，奔赴戰場！
+        我準備好了！
       </button>
     </div>
   `;
@@ -206,6 +330,30 @@ async function sendAction(action, payload = {}) {
   }
 }
 
+// 觸發具備 3D 轉動動畫的擲骰
+async function triggerAnimatedDiceRoll(playerId) {
+  if (isDiceRollingAnimation) return;
+  isDiceRollingAnimation = true;
+  renderCurrentView(); // 觸發轉動動畫狀態
+
+  setTimeout(async () => {
+    isDiceRollingAnimation = false;
+    await sendAction('roll_training_dice', { playerId });
+  }, 850);
+}
+
+// 觸發協同任務的轉動擲骰
+async function triggerAnimatedMissionRoll(playerId, chosenStat) {
+  if (isDiceRollingAnimation) return;
+  isDiceRollingAnimation = true;
+  renderCurrentView();
+
+  setTimeout(async () => {
+    isDiceRollingAnimation = false;
+    await sendAction('roll_mission_dice', { playerId, chosenStat });
+  }, 850);
+}
+
 // SSE 連線
 function connectRoomSSE(roomId) {
   if (sseConnection) {
@@ -243,7 +391,7 @@ function renderLobbyScreen() {
       <h1>《勇者的召喚》</h1>
       <div class="hero-subtitle">臺灣志願役士兵招募與訓練 數位戰術桌遊</div>
       <p style="max-width: 700px; margin: 0 auto; color: var(--text-muted);">
-        化身高中畢業生、大學畢業生、社會人士或專業技術菁英，投身志願役軍旅生活！<br>
+        化身高中畢業、大學畢業、社會人士或專業技術菁英，投身志願役軍旅生活！<br>
         歷經精實訓練、突發事件考驗與實兵任務，累積嘉獎與大小功，角逐最高榮譽「一星寶星獎章」！
       </p>
     </div>
@@ -254,7 +402,7 @@ function renderLobbyScreen() {
         <div>
           <div style="display:inline-block; background:#52b788; color:#111; font-size:0.75rem; font-weight:900; padding:2px 8px; border-radius:4px; margin-bottom:8px;">★ 推薦模式</div>
           <h3 style="color:#74c69d;">🎮 一個人自己玩 (單兵生涯)</h3>
-          <p>無需等待其他人！一人立即挑選身分開始軍旅冒險，訓練、擲骰、事件與任務全自動一體化！</p>
+          <p>無需等待其他人！一人立即自訂姓名與生日，挑選身分開始軍旅冒險，訓練、擲骰、事件與任務全自動一體化！</p>
         </div>
         <button class="btn btn-primary" style="width:100%; justify-content:center; font-size:1.05rem;">一人直接開始遊玩</button>
       </div>
@@ -272,12 +420,12 @@ function renderLobbyScreen() {
       <div class="mode-card" onclick="showJoinModal()">
         <div>
           <h3>🎖️ 參加方加入遊戲</h3>
-          <p>新兵報到！使用手機或電腦輸入 4 位數代號加入戰局，選擇身分並進行個人戰技判定。</p>
+          <p>新兵報到！使用手機或電腦輸入 4 位數代號加入戰局，自訂真實姓名生日並挑選身分。</p>
         </div>
         <button class="btn btn-gold" style="width:100%; justify-content:center;">新兵報到入伍</button>
       </div>
 
-      <!-- 單機多角演練 -->
+      <!-- 四人同螢幕演練 -->
       <div class="mode-card" onclick="startSoloMode()">
         <div>
           <h3>⚔️ 四人同螢幕演練</h3>
@@ -290,7 +438,7 @@ function renderLobbyScreen() {
       <div class="mode-card" onclick="navigateTo('#admin')">
         <div>
           <h3>⚙️ 後台管理系統</h3>
-          <p>完整自訂 4 大角色、7 大訓練、20 張事件卡、10 張任務卡、單人遊玩設置及規則！</p>
+          <p>完整自訂 4 大身分、7 大訓練、20 張事件卡、10 張任務卡、單人遊玩設置及規則！</p>
         </div>
         <button class="btn" style="width:100%; justify-content:center;">進入管理後台</button>
       </div>
@@ -306,7 +454,7 @@ async function startSinglePlayerGame() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'create_solo_game',
-        payload: { playerName: '志願役新兵', realBirthday: '01-14', playerId: myPlayerId }
+        payload: { playerName: '志願役戰士', realBirthday: '01-14', playerId: myPlayerId }
       })
     });
     const data = await res.json();
@@ -353,11 +501,11 @@ function showJoinModal() {
         <input type="text" id="join-room-input" class="form-control" placeholder="例如：ABCD" maxlength="4" style="text-transform:uppercase; font-size:1.3rem; letter-spacing:3px;">
       </div>
       <div class="form-group" style="text-align:left;">
-        <label>入伍士兵暱稱</label>
-        <input type="text" id="join-name-input" class="form-control" placeholder="輸入你的名字" value="新兵戰友">
+        <label>入伍士兵姓名或暱稱（替代人物姓名）</label>
+        <input type="text" id="join-name-input" class="form-control" placeholder="請輸入您的真實姓名或暱稱" value="新兵戰友">
       </div>
       <div class="form-group" style="text-align:left;">
-        <label>真實生日 (用於順位優先權判定)</label>
+        <label>您的真實生日 (月-日，用於順位優先權判定)</label>
         <input type="text" id="join-birthday-input" class="form-control" placeholder="格式如：05-20" value="05-20">
       </div>
       <div style="display:flex; gap:12px; margin-top:20px;">
@@ -453,7 +601,7 @@ function renderHostScreen() {
       <div class="phase-step ${phase === 'EVENT' ? 'active' : ''}">4. 突發事件</div>
       <div class="phase-step ${phase === 'ROLL_TRAINING' ? 'active' : ''}">5. 訓練判定</div>
       <div class="phase-step ${phase === 'DRAW_MISSION' || phase === 'RESOLVE_MISSION' ? 'active' : ''}">6. 實兵任務</div>
-      <div class="phase-step ${phase === 'AWARDS_VICTORY' ? 'active' : ''}">7. 累功換章</div>
+      <div class="phase-step ${phase === 'AWARDS_VICTORY' || phase === 'MEDAL_CELEBRATION' ? 'active' : ''}">7. 累功換章</div>
     </div>
 
     <!-- 環節作戰指示橫幅 -->
@@ -484,8 +632,8 @@ function renderHostScreen() {
       </div>
     </div>
 
-    <!-- 終局獲勝彈窗 -->
-    ${currentRoom.phase === 'GAME_OVER' ? renderVictoryModal() : ''}
+    <!-- 終局獲勝/榮譽士兵彈窗 -->
+    ${(currentRoom.phase === 'MEDAL_CELEBRATION' || currentRoom.phase === 'GAME_OVER') ? renderMedalCelebrationModal() : ''}
   `;
 }
 
@@ -499,7 +647,7 @@ function renderHostPhaseOperations() {
         <h3 style="color:#ffd166; font-size:1.8rem; margin-bottom:12px;">作戰指揮中心就緒</h3>
         <p style="color:var(--text-muted); margin-bottom:24px;">
           目前已報到新兵：<strong>${currentRoom.players.length} / 4</strong> 名。<br>
-          請讓新兵在手機端瀏覽此網址或輸入代碼【<strong>${currentRoom.roomId}</strong>】加入！
+          新兵可在手機端輸入代碼【<strong>${currentRoom.roomId}</strong>】加入，或一人直接開始！
         </p>
         <button class="btn btn-primary" style="font-size:1.15rem; padding:12px 30px;" onclick="sendAction('start_role_selection')">
           🚀 人員到齊，開啟招募選角
@@ -514,7 +662,7 @@ function renderHostPhaseOperations() {
       <div>
         <h3 style="color:#ffd166; margin-bottom:8px;">招募階段（身分選擇中）</h3>
         <p style="color:var(--text-muted); margin-bottom:16px;">
-          請各新兵在個人終端選擇代表角色（高中畢業生、大學畢業生、社會人士、專業人士）。
+          請各新兵在個人終端輸入自訂姓名與生日，並挑選身分（高中畢業、大學畢業、社會人士、專業人士）。
         </p>
         <div style="background:rgba(0,0,0,0.3); padding:16px; border-radius:8px; margin-bottom:20px;">
           未選角人數：<strong>${unselected.length}</strong> 人
@@ -567,9 +715,9 @@ function renderHostPhaseOperations() {
         ${currentRoom.currentEvent ? renderEventCard(currentRoom.currentEvent) : ''}
         <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <h4 style="color:#fff;">訓練判定中</h4>
+            <h4 style="color:#fff;">訓練考核判定中</h4>
             <p style="color:var(--text-muted); font-size:0.9rem;">
-              請各官兵在終端投擲判定骰子，檢核是否達成通過標準。
+              請各官兵在終端投擲作戰骰，檢核是否達成通過標準。
             </p>
           </div>
           <button class="btn btn-primary" onclick="sendAction('resolve_training_phase')">
@@ -583,12 +731,12 @@ function renderHostPhaseOperations() {
   if (p === 'DRAW_MISSION') {
     return `
       <div style="text-align:center; padding:30px 10px;">
-        <h3 style="color:#ffd166; font-size:1.6rem; margin-bottom:12px;">任務發布階段</h3>
+        <h3 style="color:#ffd166; font-size:1.6rem; margin-bottom:12px;">部隊任務發布階段</h3>
         <p style="color:var(--text-muted); margin-bottom:20px;">
-          經過嚴格訓練後，各部隊將接受各項實兵任務檢驗！請抽取本回合部隊任務。
+          經過嚴格訓練後，各部隊將接受各項實兵任務檢驗！請抽取本回合任務令。
         </p>
         <button class="btn btn-primary" style="font-size:1.15rem; padding:12px 30px;" onclick="sendAction('draw_mission')">
-          🎖️ 抽取本回合任務卡
+          🎖️ 抽取本回合任務令
         </button>
       </div>
     `;
@@ -600,7 +748,7 @@ function renderHostPhaseOperations() {
         ${currentRoom.currentMission ? renderMissionCard(currentRoom.currentMission) : ''}
         <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <h4 style="color:#fff;">任務評核與團隊判定</h4>
+            <h4 style="color:#fff;">實兵任務評核與協同判定</h4>
             <p style="color:var(--text-muted); font-size:0.9rem;">
               檢核官兵各項素質標準或團隊聯合擲骰貢獻。
             </p>
@@ -618,11 +766,11 @@ function renderHostPhaseOperations() {
       <div style="text-align:center; padding:30px 10px;">
         <h3 style="color:#ffd166; font-size:1.6rem; margin-bottom:12px;">累功換章與勝利判定</h3>
         <p style="color:var(--text-muted); margin-bottom:20px;">
-          折算標準：<strong>3 支嘉獎 = 1 支小功</strong>、<strong>3 支小功 = 1 支大功</strong>、<strong>3 支大功 = 一星寶星獎章</strong>！<br>
-          只要有任何一位官兵榮獲「一星寶星獎章」，戰局立即結算並由最高功勳者獲勝！
+          折算準則：<strong>3 支嘉獎 = 1 支小功</strong>、<strong>3 支小功 = 1 支大功</strong>、<strong>3 支大功 = 一星寶星獎章</strong>！<br>
+          官兵榮獲「一星寶星獎章」將晉升為榮譽士兵！其餘人員亦可選擇繼續受訓爭取下一枚勳章。
         </p>
         <button class="btn btn-gold" style="font-size:1.15rem; padding:14px 34px;" onclick="sendAction('resolve_awards_and_victory')">
-          ⭐ 執行累功換章並檢驗勝利條件
+          ⭐ 執行累功換章並檢驗勳章
         </button>
       </div>
     `;
@@ -781,8 +929,8 @@ function renderPlayerScreen() {
       ${renderPlayerPhaseActions(me, phase)}
     </div>
 
-    <!-- 終局獲勝彈窗 -->
-    ${currentRoom.phase === 'GAME_OVER' ? renderVictoryModal() : ''}
+    <!-- 終局獲勝/榮譽士兵彈窗 -->
+    ${(currentRoom.phase === 'MEDAL_CELEBRATION' || currentRoom.phase === 'GAME_OVER') ? renderMedalCelebrationModal() : ''}
   `;
 }
 
@@ -870,22 +1018,35 @@ function renderPlayerPhaseActions(me, phase) {
   if (phase === 'SELECT_ROLE') {
     return `
       <div style="background:var(--bg-panel); border-radius:10px; padding:16px;">
-        <h3 style="color:#ffd166; margin-bottom:8px;">招募階段：挑選身分</h3>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:14px;">
-          請選擇您的起始角色（各角色具備不同初始屬性與專屬軍旅特長技能）：
+        <h3 style="color:#ffd166; margin-bottom:6px;">身分招募：自訂姓名與挑選身分</h3>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+          輸入您的個人資料以替代人物預設檔，並挑選專屬特長身分：
         </p>
+
+        <!-- 自訂個人姓名與生日 -->
+        <div style="background:rgba(0,0,0,0.3); border:1px solid var(--border-camo); border-radius:8px; padding:12px; margin-bottom:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:0.8rem; color:#ffd166;">您的姓名或暱稱</label>
+            <input type="text" id="custom-soldier-name" class="form-control" style="font-size:0.9rem;" value="${me.name || '新兵戰士'}" placeholder="例如：陳大明">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:0.8rem; color:#ffd166;">您的真實生日 (月-日)</label>
+            <input type="text" id="custom-soldier-bday" class="form-control" style="font-size:0.9rem;" value="${me.realBirthday || '05-20'}" placeholder="例如：05-20">
+          </div>
+        </div>
+
         <div style="display:grid; grid-template-columns:1fr; gap:12px;">
           ${currentRoom.config.roles.map(r => {
             const isTaken = currentRoom.players.some(p => p.id !== me.id && p.roleId === r.id);
             const isSelected = me.roleId === r.id;
             return `
-              <div class="training-card-item ${isSelected ? 'selected' : ''}" style="${isTaken ? 'opacity:0.4; pointer-events:none;' : ''}" onclick="sendAction('select_role', { playerId: '${me.id}', roleId: '${r.id}' })">
+              <div class="training-card-item ${isSelected ? 'selected' : ''}" style="${isTaken ? 'opacity:0.4; pointer-events:none;' : ''}" onclick="selectRoleWithCustomData('${me.id}', '${r.id}')">
                 <div style="display:flex; gap:12px; align-items:center;">
                   <div style="width:60px; height:70px;">${GAME_ASSETS.avatars[r.id]}</div>
                   <div style="flex-grow:1;">
                     <div style="display:flex; justify-content:space-between;">
-                      <h4 style="color:#fff;">${r.name} (${r.soldierName})</h4>
-                      <span style="font-size:0.75rem; color:#ffd166;">生日：${r.birthdayText}</span>
+                      <h4 style="color:#fff;">${r.name}</h4>
+                      <span style="font-size:0.75rem; color:#ffd166;">身分特長</span>
                     </div>
                     <div style="font-size:0.8rem; color:var(--text-muted); margin:4px 0;">
                       ${r.characteristics}
@@ -972,7 +1133,12 @@ function renderPlayerPhaseActions(me, phase) {
             點擊下方按鈕擲骰，軍徽星芒為命中面朝上！
           </p>
 
-          ${me.diceResults ? `
+          ${isDiceRollingAnimation ? `
+            <div class="dice-list-flex">
+              ${[1,2,3,4].map(() => GAME_ASSETS.renderRollingDice()).join('')}
+            </div>
+            <div style="color:#ffd166; font-weight:800; font-size:1.1rem; margin-top:10px;">🎲 作戰骰劇烈滾動中...</div>
+          ` : (me.diceResults ? `
             <div class="dice-list-flex">
               ${me.diceResults.rolls.map(r => GAME_ASSETS.renderDice(r.value, r.isSuccess)).join('')}
             </div>
@@ -986,11 +1152,11 @@ function renderPlayerPhaseActions(me, phase) {
             ` : ''}
           ` : `
             <div style="margin:24px 0;">
-              <button class="btn btn-primary" style="font-size:1.2rem; padding:12px 36px;" onclick="sendAction('roll_training_dice', { playerId: '${me.id}' })">
+              <button class="btn btn-primary" style="font-size:1.2rem; padding:12px 36px;" onclick="triggerAnimatedDiceRoll('${me.id}')">
                 🎲 投擲作戰判定骰
               </button>
             </div>
-          `}
+          `)}
         </div>
       </div>
     `;
@@ -1027,19 +1193,24 @@ function renderPlayerPhaseActions(me, phase) {
             <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
               選擇一項你最有把握的素質進行投擲，為部隊任務貢獻命中面數：
             </p>
-            ${myRoll ? `
+            ${isDiceRollingAnimation ? `
+              <div class="dice-list-flex">
+                ${[1,2,3,4].map(() => GAME_ASSETS.renderRollingDice()).join('')}
+              </div>
+              <div style="color:#ffd166; font-weight:800;">🎲 團隊協同擲骰翻滾中...</div>
+            ` : (myRoll ? `
               <div class="dice-list-flex">
                 ${myRoll.rolls.map(r => GAME_ASSETS.renderDice(r.value, r.isSuccess)).join('')}
               </div>
               <div style="color:#74c69d; font-weight:700;">你已貢獻 ${myRoll.successes} 顆成功面！</div>
             ` : `
               <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-                <button class="btn btn-sm" onclick="sendAction('roll_mission_dice', { playerId: '${me.id}', chosenStat: 'strength' })">力量 (${me.stats.strength}骰)</button>
-                <button class="btn btn-sm" onclick="sendAction('roll_mission_dice', { playerId: '${me.id}', chosenStat: 'agility' })">靈敏 (${me.stats.agility}骰)</button>
-                <button class="btn btn-sm" onclick="sendAction('roll_mission_dice', { playerId: '${me.id}', chosenStat: 'endurance' })">體力 (${me.stats.endurance}骰)</button>
-                <button class="btn btn-sm" onclick="sendAction('roll_mission_dice', { playerId: '${me.id}', chosenStat: 'intelligence' })">智慧 (${me.stats.intelligence}骰)</button>
+                <button class="btn btn-sm" onclick="triggerAnimatedMissionRoll('${me.id}', 'strength')">力量 (${me.stats.strength}骰)</button>
+                <button class="btn btn-sm" onclick="triggerAnimatedMissionRoll('${me.id}', 'agility')">靈敏 (${me.stats.agility}骰)</button>
+                <button class="btn btn-sm" onclick="triggerAnimatedMissionRoll('${me.id}', 'endurance')">體力 (${me.stats.endurance}骰)</button>
+                <button class="btn btn-sm" onclick="triggerAnimatedMissionRoll('${me.id}', 'intelligence')">智慧 (${me.stats.intelligence}骰)</button>
               </div>
-            `}
+            `)}
           </div>
         ` : ''}
 
@@ -1071,13 +1242,19 @@ function renderPlayerPhaseActions(me, phase) {
   return '';
 }
 
+// 帶自訂姓名與生日選角
+function selectRoleWithCustomData(playerId, roleId) {
+  const customName = document.getElementById('custom-soldier-name')?.value?.trim() || '';
+  const customBday = document.getElementById('custom-soldier-bday')?.value?.trim() || '';
+  sendAction('select_role', { playerId, roleId, customName, customBirthday: customBday });
+}
+
 // -------------------------------------------------------------
 // 4. 單機同螢幕演練模式 (Solo / Pass & Play)
 // -------------------------------------------------------------
 async function startSoloMode() {
   await createHostRoom();
-  // 建立 4 個本機角色
-  const names = ['新兵 楊馨慧', '新兵 林星儀', '新兵 蔡嘉亨', '新兵 黃彥材'];
+  const names = ['新兵 馨慧', '新兵 星儀', '新兵 嘉亨', '新兵 彥材'];
   const bdays = ['01-14', '08-15', '04-25', '11-30'];
   for (let i = 0; i < 4; i++) {
     await fetch('/api/action', {
@@ -1098,14 +1275,13 @@ function renderSoloScreen() {
     navigateTo('#lobby');
     return;
   }
-  // 在單機模式下，同時呈現主持操控與玩家全景操作
   renderHostScreen();
 }
 
 // -------------------------------------------------------------
 // 5. 後台管理系統 (Admin CMS)
 // -------------------------------------------------------------
-let activeAdminTab = 'roles'; // 'roles' | 'trainings' | 'events' | 'missions' | 'system'
+let activeAdminTab = 'roles';
 
 function checkIsAdminLoggedIn() {
   return sessionStorage.getItem('coh_admin_token') === 'authenticated' && sessionStorage.getItem('coh_admin_user') === 'shiun8282';
@@ -1462,30 +1638,44 @@ function importConfigJson(event) {
   reader.readAsText(file);
 }
 
-// 終局勝利結算彈窗
-function renderVictoryModal() {
-  const winners = currentRoom.winners || [];
+// 榮譽士兵功勳受封 / 終局勝利結算彈窗
+function renderMedalCelebrationModal() {
+  const winners = currentRoom.recentMedalWinners || currentRoom.winners || [];
+  const remainingPlayers = currentRoom.players?.filter(p => !winners.some(w => w.id === p.id && p.awards.medal >= 1)) || [];
+  const hasRemaining = remainingPlayers.length > 0;
+
   return `
     <div class="modal-overlay">
-      <div class="modal-dialog">
+      <div class="modal-dialog" style="max-width:620px;">
         <div class="victory-trophy-img">${GAME_ASSETS.awards.medal}</div>
-        <h2 style="color:#ffd166; font-size:2.2rem; margin-bottom:8px;">★ 榮膺寶星．全軍凱旋 ★</h2>
-        <div style="font-size:1.15rem; color:#fff; margin-bottom:14px;">
-          恭喜以下官兵榮獲【一星寶星獎章】，積存功獎最高，榮膺本次作戰大賽冠軍！
+        <h2 style="color:#ffd166; font-size:2rem; margin-bottom:6px;">★ 榮譽士兵功勳受封 ★</h2>
+        <div style="font-size:1.1rem; color:#fff; margin-bottom:14px;">
+          恭喜以下官兵榮獲【一星寶星獎章】，積存功勳卓著，率先榮膺國軍「榮譽士兵」！
         </div>
-        <div style="background:rgba(0,0,0,0.4); padding:16px; border-radius:8px; margin-bottom:20px;">
+        <div style="background:rgba(0,0,0,0.45); padding:16px; border-radius:8px; margin-bottom:20px; border:1px solid #ffd166;">
           ${winners.map(w => `
-            <div style="font-size:1.3rem; font-weight:800; color:#ffd166; margin-bottom:4px;">
-              🎖️ ${w.name} (${w.roleName} - ${w.soldierName})
+            <div style="font-size:1.35rem; font-weight:800; color:#ffd166; margin-bottom:4px;">
+              🎖️ ${w.name} (${w.soldierName})
             </div>
             <div style="font-size:0.85rem; color:var(--text-muted);">
-              一星寶星獎章 x${w.awards.medal} ｜ 大功 x${w.awards.large} ｜ 小功 x${w.awards.small} ｜ 嘉獎 x${w.awards.merit} (綜合功績得分: ${w.score})
+              一星寶星獎章 x${w.awards?.medal || 1} ｜ 大功 x${w.awards?.large || 0} ｜ 小功 x${w.awards?.small || 0} ｜ 嘉獎 x${w.awards?.merit || 0}
             </div>
           `).join('')}
         </div>
-        <button class="btn btn-gold" style="font-size:1.1rem; padding:10px 28px;" onclick="sendAction('restart_game')">
-          🔄 重新開啟新戰役
-        </button>
+
+        <div style="display:flex; gap:12px; flex-direction:column;">
+          ${hasRemaining ? `
+            <button class="btn btn-gold" style="font-size:1.1rem; padding:12px;" onclick="sendAction('continue_game_for_remaining')">
+              ⚔️ 榮譽士兵留名！剩下的弟兄繼續受訓挑戰下一座勳章
+            </button>
+          ` : ''}
+          <button class="btn btn-primary" style="font-size:1rem; padding:10px;" onclick="sendAction('finalize_game_over')">
+            🏆 圓滿結束戰事（結算全軍總排行）
+          </button>
+          <button class="btn" style="font-size:0.95rem; padding:8px;" onclick="sendAction('restart_game')">
+            🔄 重新開啟新戰局
+          </button>
+        </div>
       </div>
     </div>
   `;

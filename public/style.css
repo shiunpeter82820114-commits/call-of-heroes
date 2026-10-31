@@ -579,6 +579,18 @@ body {
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
+@keyframes diceRoll3D {
+  0% { transform: scale(0.6) rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  25% { transform: scale(1.2) rotateX(180deg) rotateY(270deg) rotateZ(90deg); }
+  50% { transform: scale(1.25) rotateX(360deg) rotateY(540deg) rotateZ(180deg); }
+  75% { transform: scale(1.1) rotateX(540deg) rotateY(720deg) rotateZ(270deg); }
+  100% { transform: scale(1) rotateX(720deg) rotateY(1080deg) rotateZ(360deg); }
+}
+
+.tactical-die.rolling {
+  animation: diceRoll3D 0.8s cubic-bezier(0.25, 1, 0.5, 1) infinite !important;
+}
+
 .tactical-die.success-die {
   background: #1b4332;
   border: 2px solid #52b788;

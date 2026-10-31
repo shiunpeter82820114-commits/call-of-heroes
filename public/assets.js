@@ -188,5 +188,11 @@ const GAME_ASSETS = {
         <span class="die-number">${value}</span>
       </div>`;
     }
+  },
+
+  renderRollingDice: function() {
+    return `<div class="tactical-die rolling" style="background:#2d4a22; border-color:#ffd166;">
+      <span class="die-number" style="font-size:1.6rem;">🎲</span>
+    </div>`;
   }
 };
